@@ -121,11 +121,51 @@ The main skill instructions are in [`SKILL.md`](SKILL.md), which contains:
 
 - **YAML frontmatter**: Skill metadata (name, description, license, compatibility, metadata)
 - **Essential commands**: Format, mount, sync, status, configuration
+- **Security guidance**: Protecting credentials in AI agent environments
 - **Configuration patterns**: Optimized settings for different workloads
 - **Troubleshooting**: Common issues and solutions
 - **Quick reference**: Decision trees and performance tuning
 
 For comprehensive details, see the [references directory](references/).
+
+## 🔒 Security: Protecting Credentials
+
+When using JuiceFS with AI agents, sensitive credentials (AK/SK, passwords) should NOT be exposed to the AI model. This skill includes a secure initialization script:
+
+### Using the Initialization Script
+
+```bash
+# Run the interactive initialization script
+./scripts/juicefs-init.sh
+```
+
+This script will:
+1. ✅ Prompt for all configuration (metadata, storage, credentials)
+2. ✅ Format the filesystem if needed
+3. ✅ Generate mount/unmount scripts with embedded credentials
+4. ✅ Set scripts to execute-only permissions (chmod 500)
+5. ✅ AI agents can run scripts but cannot read credentials
+
+### When to Use Secure Initialization
+
+**Required for:**
+- Object storage with access keys (S3, OSS, Azure, GCS)
+- Databases with passwords (Redis, MySQL, PostgreSQL)
+- Any configuration with sensitive information
+
+**Not required for:**
+- Local storage + SQLite3 (no credentials)
+
+### Generated Scripts
+
+After initialization, you'll have:
+- `juicefs-scripts/mount-<name>.sh` - Mount filesystem (execute-only)
+- `juicefs-scripts/unmount-<name>.sh` - Unmount filesystem (execute-only)
+- `juicefs-scripts/status-<name>.sh` - Check status (readable, safe)
+
+AI agents can safely execute these scripts without accessing your credentials.
+
+See [SKILL.md](SKILL.md) for detailed security documentation.
 
 ## Skill Coverage
 
@@ -134,6 +174,7 @@ For comprehensive details, see the [references directory](references/).
 - Installation and setup procedures
 - All JuiceFS commands with examples
 - Kubernetes, Hadoop, and Docker integration
+- **🔒 Secure credential handling for AI agents**
 
 ### Performance & Optimization
 - Cache configuration strategies
@@ -143,7 +184,7 @@ For comprehensive details, see the [references directory](references/).
 
 ### Operations
 - Monitoring and troubleshooting
-- Security best practices (encryption, access control)
+- **Security best practices (credential protection, encryption, access control)**
 - Maintenance tasks (garbage collection, backups)
 - Data migration patterns
 
