@@ -6,9 +6,8 @@
 #
 # The binary encapsulates metadata engine connection info and can accept any parameters.
 #
-# SECURITY MODEL:
-# - Multi-user mode (RECOMMENDED): Run as root/admin, creates binary for AI agent user
-# - Single-user mode (LIMITED): Same user runs init and AI agent, provides basic protection
+# IMPORTANT: This script MUST be run with root/administrator privileges (sudo)
+# to install shc, compile binaries, and set proper permissions.
 
 set -e
 
@@ -26,79 +25,41 @@ echo ""
 echo "   Not needed for: local storage + SQLite3"
 echo ""
 
-# Determine deployment mode
-echo "=========================================="
-echo "  Security Mode Selection"
-echo "=========================================="
-echo ""
-echo "Choose your deployment mode:"
-echo ""
-echo "1) Multi-user mode (RECOMMENDED - Proper isolation)"
-echo "   - Run this script as root or admin user"
-echo "   - Binary will be owned by root, executable by AI agent user"
-echo "   - AI agent user CANNOT decompile or read binary contents"
-echo "   - Provides true credential protection"
-echo ""
-echo "2) Single-user mode (LIMITED - Basic protection)"
-echo "   - Run this script as the same user running AI agent"
-echo "   - Binary owned by you"
-echo "   - Provides protection from casual inspection"
-echo "   - Suitable for development or trusted environments"
-echo ""
-read -p "Select mode (1 or 2): " SECURITY_MODE
-
-if [[ "$SECURITY_MODE" == "1" ]]; then
+# Check if running as root
+if [[ $EUID -ne 0 ]]; then
     echo ""
-    echo "Multi-user mode selected."
-    
-    # Check if running as root
-    if [[ $EUID -ne 0 ]]; then
-        echo ""
-        echo "⚠️  WARNING: Multi-user mode requires root privileges."
-        echo "    Please run this script with sudo:"
-        echo ""
-        echo "    sudo ./scripts/juicefs-init.sh"
-        echo ""
-        exit 1
-    fi
-    
-    # Ask for the AI agent user
+    echo "❌ ERROR: This script must be run with root/administrator privileges."
     echo ""
-    read -p "Enter the username that will run the AI agent: " AI_AGENT_USER
-    
-    # Validate user exists
-    if ! id "$AI_AGENT_USER" &>/dev/null; then
-        echo "❌ Error: User '$AI_AGENT_USER' does not exist"
-        echo "   Please create the user first: useradd -m $AI_AGENT_USER"
-        exit 1
-    fi
-    
-    MULTIUSER_MODE=true
-    echo "✓ Binary will be created for user: $AI_AGENT_USER"
-    
-elif [[ "$SECURITY_MODE" == "2" ]]; then
+    echo "   Reason: Root privileges are required to:"
+    echo "   - Install shc (Shell Script Compiler)"
+    echo "   - Compile scripts into binaries"
+    echo "   - Set proper ownership and permissions"
     echo ""
-    echo "Single-user mode selected."
+    echo "   Please run this script with sudo:"
     echo ""
-    echo "⚠️  LIMITATION: While the binary is compiled, advanced users with"
-    echo "    the right tools could potentially decompile it."
-    echo "    This provides good protection for typical use cases."
+    echo "   sudo ./scripts/juicefs-init.sh"
     echo ""
-    read -p "Continue with single-user mode? (y/n): " CONTINUE_SINGLE
-    
-    if [[ "$CONTINUE_SINGLE" != "y" ]]; then
-        echo "Aborted."
-        exit 0
-    fi
-    
-    MULTIUSER_MODE=false
-    AI_AGENT_USER=$(whoami)
-    
-else
-    echo "❌ Invalid selection"
     exit 1
 fi
 
+echo "✓ Running with root privileges"
+echo ""
+
+# Ask for the AI agent user
+echo "=========================================="
+echo "  AI Agent User Configuration"
+echo "=========================================="
+echo ""
+read -p "Enter the username that will run the AI agent: " AI_AGENT_USER
+
+# Validate user exists
+if ! id "$AI_AGENT_USER" &>/dev/null; then
+    echo "❌ Error: User '$AI_AGENT_USER' does not exist"
+    echo "   Please create the user first: useradd -m $AI_AGENT_USER"
+    exit 1
+fi
+
+echo "✓ Binary will be created for user: $AI_AGENT_USER"
 echo ""
 
 # Check if JuiceFS is installed
@@ -166,25 +127,13 @@ if ! command -v shc &> /dev/null; then
             # Linux - try different package managers
             if command -v apt-get &> /dev/null; then
                 echo "Using apt-get..."
-                if [[ "$MULTIUSER_MODE" == "true" ]]; then
-                    apt-get update && apt-get install -y shc
-                else
-                    sudo apt-get update && sudo apt-get install -y shc
-                fi
+                apt-get update && apt-get install -y shc
             elif command -v yum &> /dev/null; then
                 echo "Using yum..."
-                if [[ "$MULTIUSER_MODE" == "true" ]]; then
-                    yum install -y shc
-                else
-                    sudo yum install -y shc
-                fi
+                yum install -y shc
             elif command -v dnf &> /dev/null; then
                 echo "Using dnf..."
-                if [[ "$MULTIUSER_MODE" == "true" ]]; then
-                    dnf install -y shc
-                else
-                    sudo dnf install -y shc
-                fi
+                dnf install -y shc
             else
                 echo "❌ Could not detect package manager."
                 echo "   Please install shc manually and run this script again."
@@ -620,17 +569,12 @@ fi
 
 echo "✓ Binary compiled successfully: $BINARY_PATH"
 
-# Set permissions on the binary
-if [[ "$MULTIUSER_MODE" == "true" ]]; then
-    AI_AGENT_GROUP=$(id -gn "$AI_AGENT_USER")
-    chown root:"$AI_AGENT_GROUP" "$BINARY_PATH"
-    chmod 750 "$BINARY_PATH"  # Owner and group can execute
-    echo "✓ Binary owned by root, executable by $AI_AGENT_USER (group $AI_AGENT_GROUP)"
-    echo "   Permissions: 750 (owner rwx, group r-x)"
-else
-    chmod 755 "$BINARY_PATH"
-    echo "✓ Binary permissions set to 755"
-fi
+# Set permissions on the binary (owned by root, executable by AI agent user)
+AI_AGENT_GROUP=$(id -gn "$AI_AGENT_USER")
+chown root:"$AI_AGENT_GROUP" "$BINARY_PATH"
+chmod 750 "$BINARY_PATH"  # Owner and group can execute
+echo "✓ Binary owned by root, executable by $AI_AGENT_USER (group $AI_AGENT_GROUP)"
+echo "   Permissions: 750 (owner rwx, group r-x)"
 
 # Clean up intermediate files
 echo ""
@@ -710,17 +654,10 @@ if [ "$NEEDS_SECURITY" = true ]; then
     echo "🔒 SECURITY NOTES:"
     echo "   - Binary contains embedded credentials"
     
-    if [[ "$MULTIUSER_MODE" == "true" ]]; then
-        echo "   - Multi-user mode: Binary owned by root, executable by $AI_AGENT_USER"
-        echo "   - User '$AI_AGENT_USER' can execute but credentials are protected"
-        echo "   - This provides strong credential isolation"
-        echo "   - Binary location: $BINARY_PATH"
-    else
-        echo "   - Single-user mode: Binary compiled with shc"
-        echo "   - Credentials are obfuscated in the compiled binary"
-        echo "   - Provides good protection for typical use cases"
-    fi
-    
+    echo "   - Binary owned by root, executable by $AI_AGENT_USER"
+    echo "   - User '$AI_AGENT_USER' can execute but credentials are protected"
+    echo "   - This provides strong credential isolation"
+    echo "   - Binary location: $BINARY_PATH"
     echo "   - Binary can be used by AI agents safely"
     echo "   - Credentials cannot be extracted via simple commands like 'cat'"
     echo ""
@@ -731,17 +668,9 @@ else
     echo ""
 fi
 
-if [[ "$MULTIUSER_MODE" == "true" ]]; then
-    echo "Next steps (as user $AI_AGENT_USER):"
-    echo "  1. Switch to AI agent user: su - $AI_AGENT_USER"
-    echo "  2. Mount the filesystem: $BINARY_PATH mount $MOUNT_POINT"
-    echo "  3. Verify mount: mountpoint $MOUNT_POINT"
-    echo "  4. Use the filesystem normally"
-else
-    echo "Next steps:"
-    echo "  1. Mount the filesystem: $BINARY_PATH mount $MOUNT_POINT"
-    echo "  2. Verify mount: mountpoint $MOUNT_POINT"
-    echo "  3. Use the filesystem normally"
-    echo "  4. When done, unmount: $BINARY_PATH umount $MOUNT_POINT"
-fi
+echo "Next steps (as user $AI_AGENT_USER):"
+echo "  1. Switch to AI agent user: su - $AI_AGENT_USER"
+echo "  2. Mount the filesystem: $BINARY_PATH mount $MOUNT_POINT"
+echo "  3. Verify mount: mountpoint $MOUNT_POINT"
+echo "  4. Use the filesystem normally"
 echo ""

@@ -140,23 +140,22 @@ done
 echo "✓ PASS: Storage options present"
 echo ""
 
-# Test 8: Check for multi-user mode support
-echo "Test 8: Checking multi-user mode support..."
-MULTIUSER_FEATURES=(
-    "Multi-user mode"
-    "Single-user mode"
-    "MULTIUSER_MODE"
+# Test 8: Check for root requirement and AI agent user configuration
+echo "Test 8: Checking root requirement and AI agent user configuration..."
+ROOT_FEATURES=(
+    "EUID"
+    "must be run with root"
     "AI_AGENT_USER"
     "chown root"
 )
 
-for feature in "${MULTIUSER_FEATURES[@]}"; do
+for feature in "${ROOT_FEATURES[@]}"; do
     if ! grep -q "$feature" "$INIT_SCRIPT"; then
-        echo "❌ FAIL: Missing multi-user feature: $feature"
+        echo "❌ FAIL: Missing root/AI agent feature: $feature"
         exit 1
     fi
 done
-echo "✓ PASS: Multi-user mode support present"
+echo "✓ PASS: Root requirement and AI agent configuration present"
 echo ""
 
 # Test 9: Check for credential handling
@@ -243,7 +242,8 @@ echo "  - Security features implemented (shc compilation)"
 echo "  - Binary generation logic correct"
 echo "  - Metadata engines supported"
 echo "  - Storage options available"
-echo "  - Multi-user mode support implemented"
+echo "  - Root requirement enforced"
+echo "  - AI agent user configuration present"
 echo "  - Credential handling present"
 echo "  - Binary verification implemented"
 echo "  - Filesystem status checks improved"

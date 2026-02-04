@@ -155,35 +155,29 @@ When using JuiceFS with AI agents, sensitive credentials (AK/SK, passwords) shou
 
 ### Using the Initialization Script
 
-**Multi-user mode (RECOMMENDED for production):**
+**IMPORTANT: This script MUST be run with root/administrator privileges (sudo)**
+
 ```bash
 # Run as root/admin to create binary for AI agent user
 sudo ./scripts/juicefs-init.sh
-# Select option 1, specify AI agent username
+# Script will prompt for AI agent username
 ```
 
-**Single-user mode (for development):**
-```bash
-# Run as same user that will run AI agent
-./scripts/juicefs-init.sh
-# Select option 2
-```
+**Why root privileges are required:**
+- To install shc (Shell Script Compiler) if not present
+- To compile scripts into secure binaries
+- To set proper ownership (root) and permissions
+- To ensure AI agent user can execute but not read the binary
 
-### Security Models
+### Security Model
 
-**Multi-user mode** provides strong credential isolation:
-1. ✅ Run init script as root/admin
-2. ✅ Binary owned by root, executable by AI agent user  
-3. ✅ AI agent user can execute but credentials are compiled into binary
-4. ✅ Strong protection - credentials obfuscated in binary format
-5. ✅ Proper user separation enforced by OS
-
-**Single-user mode** provides good protection:
-1. ✓ Binary compiled with shc (Shell Script Compiler)
-2. ✓ Credentials embedded and obfuscated in binary
-3. ✓ Cannot be read with simple commands like `cat`
-4. ✓ Suitable for development or trusted environments
-5. ⚠️ Advanced users with decompilation tools may extract information
+The initialization script provides strong credential isolation:
+1. ✅ Must run as root/admin - enforced by script
+2. ✅ Automatically installs shc if not present
+3. ✅ Binary owned by root, executable by AI agent user  
+4. ✅ AI agent user can execute but credentials are compiled into binary
+5. ✅ Strong protection - credentials obfuscated in binary format
+6. ✅ Proper user separation enforced by OS
 
 ### When to Use Secure Initialization
 

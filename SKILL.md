@@ -105,32 +105,20 @@ NOT required for:
 
 Instead of directly running `juicefs format` and `juicefs mount` commands that expose credentials:
 
-**1. Choose deployment mode:**
+**IMPORTANT: The initialization script MUST be run with root/administrator privileges (sudo)**
 
-The initialization script supports two security models:
+**Why root is required:**
+- To install shc (Shell Script Compiler) if not present
+- To compile scripts into secure binaries
+- To set proper ownership and permissions
+- To ensure AI agent cannot access credentials
 
-- **Multi-user mode (RECOMMENDED)**: Run as root/admin, creates compiled binary for AI agent user
-  - Provides strong credential isolation
-  - AI agent user can execute binary but credentials are compiled and obfuscated
-  - Binary owned by root, executable by AI agent user
-  - Uses shc (Shell Script Compiler) for protection
-  
-- **Single-user mode (GOOD)**: Same user runs init and AI agent
-  - Binary compiled with shc (Shell Script Compiler)
-  - Credentials embedded and obfuscated in binary format
-  - Cannot be read with simple commands like `cat`
-  - Suitable for development or trusted single-user environments
-
-**2. Run the initialization script:**
+**Run the initialization script:**
 
 ```bash
-# For multi-user mode (strong isolation):
+# MUST run as root/admin
 sudo ./scripts/juicefs-init.sh
-# Select option 1, specify AI agent username
-
-# For single-user mode (good protection):
-./scripts/juicefs-init.sh
-# Select option 2
+# Script will prompt for AI agent username
 ```
 
 **Re-running the script:**
@@ -149,9 +137,9 @@ This interactive script will:
 - Name binary after filesystem for easy identification
 - Verify binary functionality
 - Clean up intermediate files (wrapper script, C source)
-- Set proper permissions and ownership based on mode
+- Set proper permissions and ownership (root:AI_AGENT_USER group, 750)
 
-**3. Generated binary** (in `juicefs-scripts/` directory):
+**Generated binary** (in `juicefs-scripts/` directory):
 - `<filesystem-name>` - Compiled binary wrapper (e.g., `prod-data`)
 
 The binary:
@@ -159,10 +147,11 @@ The binary:
 - Accepts any JuiceFS command and parameters
 - Named after filesystem for easy identification and management
 - One filesystem = one binary program
+- Owned by root, executable by AI agent user
 
-**4. AI Agent usage**:
+**AI Agent usage**:
 ```bash
-# Multi-user mode: Switch to AI agent user first
+# Switch to AI agent user first
 su - aiagent
 
 # Show available commands
@@ -187,14 +176,13 @@ su - aiagent
 ./juicefs-scripts/myfs bench /mnt/jfs
 ```
 
-### Example: Secure Setup Flow (Multi-User Mode)
+### Example: Secure Setup Flow
 
 **Step 1: Admin initializes** (one-time setup as root):
 ```bash
 cd /path/to/juicefs-skill
 sudo ./scripts/juicefs-init.sh
-# Select mode: 1 (Multi-user mode)
-# AI agent user: aiagent
+# Enter AI agent username: aiagent
 # Follow prompts to enter:
 # - Filesystem name: prod-data
 # - Mount point: /mnt/jfs
@@ -224,25 +212,6 @@ cp data.csv /mnt/jfs/
 ./juicefs-scripts/prod-data umount /mnt/jfs
 ```
 
-### Example: Single-User Mode (Good Protection)
-
-**For development or trusted single-user environments:**
-
-```bash
-cd /path/to/juicefs-skill
-./scripts/juicefs-init.sh
-# Select mode: 2 (Single-user mode)
-# Follow configuration prompts
-# Binary compiled with shc: juicefs-scripts/prod-data
-
-# Later, use the binary
-./juicefs-scripts/prod-data mount /mnt/jfs
-./juicefs-scripts/prod-data status
-./juicefs-scripts/prod-data umount /mnt/jfs
-```
-
-**Note:** The binary is compiled using shc (Shell Script Compiler), which embeds and obfuscates credentials. While not impervious to determined reverse engineering, it provides good protection for typical use cases.
-
 ### For AI Agents: Detection and Guidance
 
 When a user asks to format or mount JuiceFS:
@@ -258,18 +227,15 @@ When a user asks to format or mount JuiceFS:
 
 To prevent credential exposure to the AI model:
 
-1. Please run the initialization script yourself:
-   # For production with strong isolation:
+1. Please run the initialization script yourself (MUST use sudo):
    sudo ./scripts/juicefs-init.sh
-   # Select multi-user mode, specify AI agent username
-   
-   # For development/testing:
-   ./scripts/juicefs-init.sh
-   # Select single-user mode (good protection)
+   # Script will prompt for AI agent username
 
 2. Follow the prompts to configure your filesystem
-   - The script will compile credentials into a binary using shc
+   - The script will install shc if needed
+   - Script will compile credentials into a binary using shc
    - Binary will be named after your filesystem
+   - Binary owned by root, executable by AI agent
 
 3. Once complete, I can help you use the generated binary:
    - Show commands: ./juicefs-scripts/<name>
@@ -280,8 +246,8 @@ To prevent credential exposure to the AI model:
 This keeps your AK/SK and passwords secure from the AI model.
 The binary contains compiled credentials that cannot be read with simple commands.
 
-Note: For strongest protection, use multi-user mode where the binary
-is owned by root and executable by the AI agent user.
+Note: Root privileges are required for shc installation, binary compilation,
+and setting proper ownership/permissions.
 ```
 
 ### Insecure Setup (Local Development Only)

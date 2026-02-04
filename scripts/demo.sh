@@ -26,9 +26,12 @@ Agent: "This requires sensitive credentials (AK/SK, Redis password)."
 │ Step 1: User runs initialization script (outside AI)        │
 └─────────────────────────────────────────────────────────────┘
 
-$ ./scripts/juicefs-init.sh
+IMPORTANT: Must run with sudo (root privileges required)
+
+$ sudo ./scripts/juicefs-init.sh
 
 Prompts for:
+  ✓ AI agent username: aiagent
   ✓ Filesystem name: prod-data
   ✓ Mount point: /mnt/jfs
   ✓ Metadata engine: Redis with password
@@ -36,9 +39,11 @@ Prompts for:
   ✓ Cache and performance settings
 
 Creates:
+  ✓ Installs shc (Shell Script Compiler) if needed
   ✓ Wrapper script with embedded credentials
-  ✓ Compiles wrapper using shc (Shell Script Compiler)
+  ✓ Compiles wrapper using shc
   ✓ Binary named after filesystem: juicefs-scripts/prod-data
+  ✓ Binary owned by root, executable by aiagent user
   ✓ Cleans up intermediate files (.sh, .x.c)
 
 ┌─────────────────────────────────────────────────────────────┐
