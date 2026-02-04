@@ -4,7 +4,7 @@ This document provides an index to all the JuiceFS skill resources for AI agents
 
 ## Skill Files
 
-### 1. [juicefs-skill.md](juicefs-skill.md)
+### 1. [COMPREHENSIVE_REFERENCE.md](COMPREHENSIVE_REFERENCE.md)
 **Main comprehensive skill document**
 
 The primary reference containing detailed information about:
@@ -21,6 +21,8 @@ The primary reference containing detailed information about:
 **Best for**: Comprehensive reference, in-depth understanding, detailed configurations
 
 **Sections**: 20+ major sections covering all aspects of JuiceFS
+
+**Note**: This is the reference material. The main skill entry point is `../SKILL.md` in the parent directory.
 
 ### 2. [QUICKSTART.md](QUICKSTART.md)
 **Quick reference guide for common tasks**

@@ -5,7 +5,7 @@ license: Apache-2.0
 compatibility: Requires JuiceFS client, metadata engine (Redis/MySQL/TiKV/SQLite), and object storage access
 metadata:
   author: yuhr123
-  version: "1.0"
+  version: 1.0
   based_on: JuiceFS Community Edition
 ---
 

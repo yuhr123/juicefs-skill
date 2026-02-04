@@ -8,7 +8,13 @@ This repository contains a comprehensive skill package for JuiceFS Community Edi
 
 ### 1. Core Documentation Files
 
-- **juicefs-skill.md** (780 lines, 18KB)
+- **SKILL.md** (466 lines, 11KB) - Main skill file in parent directory
+  - Essential commands and quick reference
+  - Configuration patterns by workload
+  - Troubleshooting guides
+  - Decision trees
+
+- **COMPREHENSIVE_REFERENCE.md** (780 lines, 18KB) - In references/
   - Comprehensive reference covering all aspects of JuiceFS
   - 163 headers organized in 20+ major sections
   - 36 code block examples
@@ -169,11 +175,13 @@ Potential additions:
 
 ```
 juicefs-skill/
-├── README.md                 # Overview and introduction
-├── juicefs-skill.md         # Main comprehensive reference
-├── QUICKSTART.md            # Task-oriented guide
-├── TABLE_OF_CONTENTS.md     # Navigation and index
-└── SUMMARY.md               # This file
+├── README.md                          # Overview and introduction
+├── SKILL.md                           # Main skill file (required)
+└── references/                        # Detailed reference material
+    ├── COMPREHENSIVE_REFERENCE.md     # Complete JuiceFS documentation
+    ├── QUICKSTART.md                  # Task-oriented guide
+    ├── TABLE_OF_CONTENTS.md          # Navigation and index
+    └── SUMMARY.md                     # This file
 ```
 
 ## Repository Information

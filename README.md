@@ -25,7 +25,7 @@ juicefs-skill/
 
 The main skill instructions are in [`SKILL.md`](SKILL.md), which contains:
 
-- **YAML frontmatter**: Skill metadata (name, description, license)
+- **YAML frontmatter**: Skill metadata (name, description, license, compatibility, metadata)
 - **Essential commands**: Format, mount, sync, status, configuration
 - **Configuration patterns**: Optimized settings for different workloads
 - **Troubleshooting**: Common issues and solutions
@@ -72,7 +72,7 @@ AI agents load this skill when users need to:
 
 The skill uses **progressive disclosure**:
 - Light metadata (`name`, `description`) loaded at startup
-- Full `SKILL.md` loaded when activated (~11KB, 385 lines)
+- Full `SKILL.md` loaded when activated (~11KB, 466 lines)
 - Reference files loaded on demand for deep dives
 
 ## Usage Examples
