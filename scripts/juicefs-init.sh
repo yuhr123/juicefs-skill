@@ -136,138 +136,49 @@ set_secure_permissions() {
     fi
 }
 
-# Function to find JuiceFS binary
-find_juicefs() {
-    # Check common installation paths
-    local juicefs_paths=(
-        "/usr/local/bin/juicefs"
-        "/usr/bin/juicefs"
-        "$HOME/.juicefs/bin/juicefs"
-        "/opt/juicefs/juicefs"
-    )
-    
-    # First try command in PATH
-    if command -v juicefs &> /dev/null; then
-        command -v juicefs
-        return 0
-    fi
-    
-    # Try common paths
-    for path in "${juicefs_paths[@]}"; do
-        if [ -x "$path" ]; then
-            echo "$path"
-            return 0
-        fi
-    done
-    
-    return 1
-}
-
-# Function to copy juicefs binary to system path
-copy_to_system_path() {
-    local source_path="$1"
-    local target_path="/usr/local/bin/juicefs"
-    
-    echo ""
-    echo "JuiceFS found at: $source_path"
-    echo "This location may not be accessible when switching users (e.g., su root)."
-    echo ""
-    read -p "Copy to $target_path for system-wide access? (y/n): " COPY_CONFIRM
-    
-    if [[ "$COPY_CONFIRM" == "y" ]]; then
-        if [ -w "/usr/local/bin" ]; then
-            cp "$source_path" "$target_path" && chmod +x "$target_path"
-            if [ $? -eq 0 ]; then
-                echo "✓ Successfully copied to $target_path"
-                echo "$target_path"
-                return 0
-            else
-                echo "❌ Failed to copy. You may need to run with sudo."
-                return 1
-            fi
-        else
-            # Try with sudo
-            echo "Copying requires elevated privileges..."
-            sudo cp "$source_path" "$target_path" && sudo chmod +x "$target_path"
-            if [ $? -eq 0 ]; then
-                echo "✓ Successfully copied to $target_path"
-                echo "$target_path"
-                return 0
-            else
-                echo "❌ Failed to copy with sudo."
-                return 1
-            fi
-        fi
-    else
-        echo "$source_path"
-        return 0
-    fi
-}
-
-# Function to offer installation
-offer_installation() {
-    echo "❌ JuiceFS client not found."
+# Check if JuiceFS is installed
+if ! command -v juicefs &> /dev/null; then
+    echo "❌ JuiceFS client not found in PATH."
     echo ""
     read -p "Would you like to install JuiceFS now? (y/n): " INSTALL_CONFIRM
     
-    if [[ "$INSTALL_CONFIRM" != "y" ]]; then
-        echo "Installation skipped."
-        return 1
-    fi
-    
-    echo ""
-    echo "Installing JuiceFS..."
-    
-    # Try standard installation script
-    if curl -sSL https://d.juicefs.com/install | sh -; then
-        echo "✓ JuiceFS installed successfully"
-        # Try to find it again
-        if command -v juicefs &> /dev/null; then
-            command -v juicefs
-            return 0
-        elif [ -x "/usr/local/bin/juicefs" ]; then
-            echo "/usr/local/bin/juicefs"
-            return 0
+    if [[ "$INSTALL_CONFIRM" == "y" ]]; then
+        echo ""
+        echo "Installing JuiceFS..."
+        
+        # Try standard installation script
+        if curl -sSL https://d.juicefs.com/install | sh -; then
+            echo "✓ JuiceFS installed successfully"
+            
+            # Verify installation
+            if command -v juicefs &> /dev/null; then
+                JUICEFS_BIN=$(command -v juicefs)
+            else
+                echo "❌ Installation completed but juicefs not found in PATH."
+                echo "   You may need to restart your shell or run: source ~/.bashrc"
+                exit 1
+            fi
+        else
+            echo ""
+            echo "❌ Automatic installation failed."
+            echo ""
+            echo "Please install manually:"
+            echo "  curl -sSL https://d.juicefs.com/install | sh -"
+            echo ""
+            echo "Or download from: https://github.com/juicedata/juicefs/releases/latest"
+            echo ""
+            exit 1
         fi
-    fi
-    
-    echo ""
-    echo "❌ Automatic installation failed."
-    echo ""
-    echo "Possible reasons:"
-    echo "  - Network connectivity issues"
-    echo "  - Unsupported system architecture"
-    echo "  - Insufficient permissions"
-    echo ""
-    echo "Please install manually:"
-    echo "  1. Download from: https://github.com/juicedata/juicefs/releases/latest"
-    echo "  2. Choose the correct binary for your system (linux-amd64, linux-arm64, etc.)"
-    echo "  3. Extract and install:"
-    echo "     tar -zxf juicefs-*.tar.gz"
-    echo "     sudo install juicefs /usr/local/bin/"
-    echo ""
-    return 1
-}
-
-# Check if JuiceFS is installed
-JUICEFS_BIN=$(find_juicefs)
-
-if [ $? -ne 0 ]; then
-    # Not found in common paths, offer installation
-    JUICEFS_BIN=$(offer_installation)
-    if [ $? -ne 0 ]; then
+    else
+        echo ""
         echo "Cannot proceed without JuiceFS client."
+        echo "Please install it and run this script again:"
+        echo "  curl -sSL https://d.juicefs.com/install | sh -"
+        echo ""
         exit 1
     fi
 else
-    # Found, but check if it needs to be copied to system path
-    if [[ "$JUICEFS_BIN" != "/usr/local/bin/juicefs" ]] && [[ "$JUICEFS_BIN" != "/usr/bin/juicefs" ]]; then
-        # Binary is in user-specific location, suggest copying
-        NEW_PATH=$(copy_to_system_path "$JUICEFS_BIN")
-        if [ $? -eq 0 ] && [ -n "$NEW_PATH" ]; then
-            JUICEFS_BIN="$NEW_PATH"
-        fi
-    fi
+    JUICEFS_BIN=$(command -v juicefs)
 fi
 
 echo "✓ Using JuiceFS at: $JUICEFS_BIN"

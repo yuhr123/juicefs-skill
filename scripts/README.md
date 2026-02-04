@@ -32,11 +32,10 @@ Test script that validates the initialization script:
 ./scripts/juicefs-init.sh
 ```
 
-**Automatic JuiceFS setup:**
-- The script will automatically detect if JuiceFS is installed
-- If not found in system paths, it will offer to install it for you
-- If found in user-specific location, it can copy to `/usr/local/bin/` for system-wide access
-- Handles installation failures gracefully with helpful error messages
+**JuiceFS Installation:**
+- The script checks if JuiceFS is in your PATH
+- If not found, it offers to install it automatically
+- Installation uses the standard JuiceFS installation script
 
 Follow the interactive prompts to configure:
 - Filesystem name

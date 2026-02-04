@@ -13,9 +13,9 @@ metadata:
 
 ## Prerequisites
 
-**JuiceFS Client Installation Required**
+**JuiceFS Client Installation**
 
-Before using this skill, ensure the JuiceFS client is installed:
+The initialization script can install JuiceFS automatically if needed.
 
 ### Standard Installation (Recommended)
 ```bash
@@ -35,16 +35,11 @@ sudo install juicefs /usr/local/bin/
 juicefs version
 ```
 
-### Multi-User Environments
-- Install to system-wide location: `/usr/local/bin/` or `/usr/bin/`
-- Ensure binary is in PATH for all users (including root)
-- The initialization script will automatically detect the binary location
-
-**Common Installation Paths:**
-- `/usr/local/bin/juicefs` (standard)
-- `/usr/bin/juicefs` (system)
-- `$HOME/.juicefs/bin/juicefs` (user-specific)
-- `/opt/juicefs/juicefs` (custom)
+### Using the Initialization Script
+The initialization script will:
+- Check if JuiceFS is in your PATH
+- Offer to install it automatically if not found
+- Guide you through the process
 
 ## Overview
 

@@ -2,39 +2,28 @@
 
 ## Prerequisites: JuiceFS Installation
 
-**The initialization script now handles JuiceFS installation automatically!**
+**The initialization script handles JuiceFS installation if needed.**
 
 The script will:
-1. Search for JuiceFS in common locations
-2. If found in user path but not system path, offer to copy to `/usr/local/bin/`
-3. If not found at all, offer to install it automatically
-4. Handle installation failures with helpful error messages
+1. Check if JuiceFS is in the user's PATH
+2. If not found, offer to install it automatically
+3. Use the standard installation script: `curl -sSL https://d.juicefs.com/install | sh -`
 
-**You should still check if available before recommending the script:**
+**You can check if JuiceFS is available:**
 
 ```bash
-# Check for JuiceFS
-command -v juicefs || which juicefs
+command -v juicefs
 ```
 
-**If NOT installed, you can safely recommend the initialization script:**
+**If NOT installed, you can recommend the initialization script:**
 
 ```
-The JuiceFS client is not currently installed.
+The initialization script can install JuiceFS for you if needed.
+Just run: ./scripts/juicefs-init.sh
 
-You can run the initialization script and it will offer to install it for you:
-  ./scripts/juicefs-init.sh
-
-The script will:
-- Attempt automatic installation
-- Handle multi-user environments
-- Provide manual installation instructions if automatic fails
+If you prefer to install manually:
+  curl -sSL https://d.juicefs.com/install | sh -
 ```
-
-**Important for multi-user setups:**
-- The script can automatically copy binaries to system-wide locations
-- Ensures accessibility across user contexts (including root when using `sudo`)
-- Handles permission issues appropriately
 
 ## When User Mentions JuiceFS Setup
 
