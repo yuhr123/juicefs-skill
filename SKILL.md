@@ -187,7 +187,7 @@ sudo ./scripts/juicefs-init.sh
 # - Filesystem name: prod-data
 # - Redis: localhost:6379 with password
 # - S3 bucket + AWS credentials
-# - Cache settings
+# - Compression option (for format)
 # Binary compiled: juicefs-scripts/prod-data
 # Owned by root, executable by aiagent
 ```

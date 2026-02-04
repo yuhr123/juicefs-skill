@@ -338,30 +338,12 @@ else
 fi
 
 echo ""
-echo "Step 5: Mount Options"
-echo "---------------------"
+echo "Step 5: Format Options"
+echo "----------------------"
 read -p "Enable compression? (y/n, default n): " ENABLE_COMPRESS
 COMPRESS_OPT=""
 if [[ "$ENABLE_COMPRESS" == "y" ]]; then
     COMPRESS_OPT="--compress lz4"
-fi
-
-read -p "Cache directory (default ~/.juicefs/cache): " CACHE_DIR
-CACHE_DIR=${CACHE_DIR:-~/.juicefs/cache}
-
-read -p "Cache size in MiB (default 102400 = 100GB): " CACHE_SIZE
-CACHE_SIZE=${CACHE_SIZE:-102400}
-
-read -p "Enable writeback cache? (y/n, default n): " ENABLE_WRITEBACK
-WRITEBACK_OPT=""
-if [[ "$ENABLE_WRITEBACK" == "y" ]]; then
-    WRITEBACK_OPT="--writeback"
-fi
-
-read -p "Enable prefetch? Enter number of threads (0 to disable, default 0): " PREFETCH_THREADS
-PREFETCH_OPT=""
-if [[ "$PREFETCH_THREADS" =~ ^[1-9][0-9]*$ ]]; then
-    PREFETCH_OPT="--prefetch $PREFETCH_THREADS"
 fi
 
 echo ""
@@ -378,11 +360,10 @@ else
     echo "Storage: (Using existing filesystem configuration)"
 fi
 
-echo "Cache Dir: $CACHE_DIR"
-echo "Cache Size: ${CACHE_SIZE} MiB"
 echo "Compression: ${ENABLE_COMPRESS:-n}"
-echo "Writeback: ${ENABLE_WRITEBACK:-n}"
-echo "Prefetch: ${PREFETCH_THREADS:-0} threads"
+echo ""
+echo "Note: Mount options (cache size, writeback, prefetch, etc.) will be"
+echo "      specified at runtime by the AI agent or user when mounting."
 echo ""
 read -p "Proceed with these settings? (y/n): " CONFIRM
 if [[ "$CONFIRM" != "y" ]]; then

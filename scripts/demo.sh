@@ -35,7 +35,7 @@ Prompts for:
   ✓ Filesystem name: prod-data
   ✓ Metadata engine: Redis with password
   ✓ Object storage: S3 with AK/SK
-  ✓ Cache and performance settings
+  ✓ Compression option (for format command)
 
 Creates:
   ✓ Installs shc (Shell Script Compiler) if needed
@@ -45,7 +45,8 @@ Creates:
   ✓ Binary owned by root, executable by aiagent user
   ✓ Cleans up intermediate files (.sh, .x.c)
 
-Note: Mount point is specified at runtime, not during initialization
+Note: Mount point and mount options (cache, writeback, prefetch) are
+      specified at runtime by the AI agent, not during initialization
 
 ┌─────────────────────────────────────────────────────────────┐
 │ Step 2: AI Agent can safely use the compiled binary         │
