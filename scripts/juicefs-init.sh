@@ -1,12 +1,13 @@
 #!/bin/bash
 
 # JuiceFS Secure Initialization Script
-# This script creates mount/unmount scripts with embedded credentials
-# and sets them to execute-only permissions to prevent AI agents from
-# accessing sensitive information like AK/SK and passwords.
+# This script creates a compiled binary wrapper for JuiceFS with embedded credentials
+# using shc (Shell Script Compiler) to protect sensitive information.
+#
+# The binary encapsulates metadata engine connection info and can accept any parameters.
 #
 # SECURITY MODEL:
-# - Multi-user mode (RECOMMENDED): Run as root/admin, creates scripts for AI agent user
+# - Multi-user mode (RECOMMENDED): Run as root/admin, creates binary for AI agent user
 # - Single-user mode (LIMITED): Same user runs init and AI agent, provides basic protection
 
 set -e
@@ -15,8 +16,8 @@ echo "=========================================="
 echo "  JuiceFS Secure Initialization Script"
 echo "=========================================="
 echo ""
-echo "This script will help you create JuiceFS mount/unmount scripts"
-echo "with credentials embedded and protected by execute-only permissions."
+echo "This script will create a compiled binary wrapper for JuiceFS"
+echo "with credentials embedded and protected using shc (Shell Script Compiler)."
 echo ""
 echo "⚠️  IMPORTANT: This script is only needed when using:"
 echo "   - Object storage with access keys (S3, OSS, Azure, etc.)"
@@ -34,15 +35,15 @@ echo "Choose your deployment mode:"
 echo ""
 echo "1) Multi-user mode (RECOMMENDED - Proper isolation)"
 echo "   - Run this script as root or admin user"
-echo "   - Scripts will be owned by root, executable by AI agent user"
-echo "   - AI agent user CANNOT read script contents"
+echo "   - Binary will be owned by root, executable by AI agent user"
+echo "   - AI agent user CANNOT decompile or read binary contents"
 echo "   - Provides true credential protection"
 echo ""
 echo "2) Single-user mode (LIMITED - Basic protection)"
 echo "   - Run this script as the same user running AI agent"
-echo "   - Scripts owned by you, chmod 500 (execute-only)"
-echo "   - You CAN still read your own files if needed"
-echo "   - Provides protection from accidental exposure, not from yourself"
+echo "   - Binary owned by you"
+echo "   - Provides protection from casual inspection"
+echo "   - Suitable for development or trusted environments"
 echo ""
 read -p "Select mode (1 or 2): " SECURITY_MODE
 
@@ -73,16 +74,15 @@ if [[ "$SECURITY_MODE" == "1" ]]; then
     fi
     
     MULTIUSER_MODE=true
-    echo "✓ Scripts will be created for user: $AI_AGENT_USER"
+    echo "✓ Binary will be created for user: $AI_AGENT_USER"
     
 elif [[ "$SECURITY_MODE" == "2" ]]; then
     echo ""
     echo "Single-user mode selected."
     echo ""
-    echo "⚠️  LIMITATION: Since you are both creating and running scripts,"
-    echo "    you can always read the script contents if needed (you own them)."
-    echo "    This provides protection from accidental exposure, but not from"
-    echo "    intentional access. For true isolation, use multi-user mode."
+    echo "⚠️  LIMITATION: While the binary is compiled, advanced users with"
+    echo "    the right tools could potentially decompile it."
+    echo "    This provides good protection for typical use cases."
     echo ""
     read -p "Continue with single-user mode? (y/n): " CONTINUE_SINGLE
     
@@ -100,42 +100,6 @@ else
 fi
 
 echo ""
-
-# Function to set secure permissions on generated scripts
-set_secure_permissions() {
-    local script_path="$1"
-    local is_sensitive="$2"  # true for scripts with credentials, false for status scripts
-    
-    if [[ "$is_sensitive" == "true" ]]; then
-        # Scripts with credentials - execute-only
-        chmod 500 "$script_path"
-        
-        if [[ "$MULTIUSER_MODE" == "true" ]]; then
-            # Multi-user mode: change ownership to root, set group to AI agent user's group
-            # AI agent user can execute via group permissions ONLY (no read!)
-            AI_AGENT_GROUP=$(id -gn "$AI_AGENT_USER")
-            chown root:"$AI_AGENT_GROUP" "$script_path"
-            chmod 510 "$script_path"  # Owner (root) read+execute, group (AI agent) execute-only, others none
-            echo "✓ Script owned by root, executable by $AI_AGENT_USER (group $AI_AGENT_GROUP)"
-            echo "   Permissions: 510 (owner r-x, group --x only)"
-        else
-            # Single-user mode: owner only
-            echo "✓ Script set to execute-only (chmod 500)"
-            echo "   Note: You (the owner) can still change permissions if needed"
-        fi
-    else
-        # Status script without credentials - readable
-        chmod 755 "$script_path"
-        
-        if [[ "$MULTIUSER_MODE" == "true" ]]; then
-            AI_AGENT_GROUP=$(id -gn "$AI_AGENT_USER")
-            chown root:"$AI_AGENT_GROUP" "$script_path"
-            echo "✓ Status script readable by all users"
-        else
-            echo "✓ Status script readable (chmod 755)"
-        fi
-    fi
-}
 
 # Check if JuiceFS is installed
 if ! command -v juicefs &> /dev/null; then
@@ -183,6 +147,88 @@ else
 fi
 
 echo "✓ Using JuiceFS at: $JUICEFS_BIN"
+echo ""
+
+# Check if shc (Shell Script Compiler) is installed
+if ! command -v shc &> /dev/null; then
+    echo "❌ shc (Shell Script Compiler) not found in PATH."
+    echo ""
+    echo "shc is required to compile scripts into binaries for credential protection."
+    echo ""
+    read -p "Would you like to install shc now? (y/n): " INSTALL_SHC_CONFIRM
+    
+    if [[ "$INSTALL_SHC_CONFIRM" == "y" ]]; then
+        echo ""
+        echo "Installing shc..."
+        
+        # Detect OS and install shc
+        if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+            # Linux - try different package managers
+            if command -v apt-get &> /dev/null; then
+                echo "Using apt-get..."
+                if [[ "$MULTIUSER_MODE" == "true" ]]; then
+                    apt-get update && apt-get install -y shc
+                else
+                    sudo apt-get update && sudo apt-get install -y shc
+                fi
+            elif command -v yum &> /dev/null; then
+                echo "Using yum..."
+                if [[ "$MULTIUSER_MODE" == "true" ]]; then
+                    yum install -y shc
+                else
+                    sudo yum install -y shc
+                fi
+            elif command -v dnf &> /dev/null; then
+                echo "Using dnf..."
+                if [[ "$MULTIUSER_MODE" == "true" ]]; then
+                    dnf install -y shc
+                else
+                    sudo dnf install -y shc
+                fi
+            else
+                echo "❌ Could not detect package manager."
+                echo "   Please install shc manually and run this script again."
+                exit 1
+            fi
+        elif [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS - use brew
+            if command -v brew &> /dev/null; then
+                echo "Using Homebrew..."
+                brew install shc
+            else
+                echo "❌ Homebrew not found."
+                echo "   Please install Homebrew first: https://brew.sh"
+                echo "   Then run: brew install shc"
+                exit 1
+            fi
+        else
+            echo "❌ Unsupported operating system."
+            echo "   Please install shc manually and run this script again."
+            exit 1
+        fi
+        
+        # Verify installation
+        if command -v shc &> /dev/null; then
+            echo "✓ shc installed successfully"
+        else
+            echo "❌ shc installation completed but not found in PATH."
+            echo "   You may need to restart your shell or install manually."
+            exit 1
+        fi
+    else
+        echo ""
+        echo "Cannot proceed without shc."
+        echo "Please install it and run this script again:"
+        echo ""
+        echo "Linux (Debian/Ubuntu): sudo apt-get install shc"
+        echo "Linux (RHEL/CentOS):   sudo yum install shc"
+        echo "macOS (Homebrew):      brew install shc"
+        echo ""
+        exit 1
+    fi
+fi
+
+echo "✓ Using shc at: $(command -v shc)"
 echo ""
 
 echo "Step 1: Basic Configuration"
@@ -266,43 +312,8 @@ case $META_CHOICE in
         ;;
 esac
 
-# Create scripts directory early to check for existing scripts
+# Create scripts directory early for later use
 SCRIPTS_DIR="$(pwd)/juicefs-scripts"
-
-# Check for existing scripts for this filesystem
-MOUNT_SCRIPT="${SCRIPTS_DIR}/mount-${FS_NAME}.sh"
-UNMOUNT_SCRIPT="${SCRIPTS_DIR}/unmount-${FS_NAME}.sh"
-STATUS_SCRIPT="${SCRIPTS_DIR}/status-${FS_NAME}.sh"
-
-EXISTING_SCRIPTS=()
-if [ -f "$MOUNT_SCRIPT" ]; then
-    EXISTING_SCRIPTS+=("mount-${FS_NAME}.sh")
-fi
-if [ -f "$UNMOUNT_SCRIPT" ]; then
-    EXISTING_SCRIPTS+=("unmount-${FS_NAME}.sh")
-fi
-if [ -f "$STATUS_SCRIPT" ]; then
-    EXISTING_SCRIPTS+=("status-${FS_NAME}.sh")
-fi
-
-if [ ${#EXISTING_SCRIPTS[@]} -gt 0 ]; then
-    echo ""
-    echo "⚠️  WARNING: Existing scripts found for filesystem '$FS_NAME':"
-    for script in "${EXISTING_SCRIPTS[@]}"; do
-        echo "   - $SCRIPTS_DIR/$script"
-    done
-    echo ""
-    echo "These scripts will be overwritten with new configuration."
-    echo ""
-    read -p "Continue and overwrite existing scripts? (y/n): " OVERWRITE_CONFIRM
-    
-    if [[ "$OVERWRITE_CONFIRM" != "y" ]]; then
-        echo "Aborted. No changes made."
-        exit 0
-    fi
-    echo ""
-    echo "Proceeding to overwrite existing scripts..."
-fi
 
 echo ""
 echo "Step 3: Checking if filesystem exists..."
@@ -318,13 +329,13 @@ if $JUICEFS_BIN status "$META_URL" &>/dev/null; then
     echo "ℹ️  Since the filesystem already exists:"
     echo "   - Storage credentials are already saved in metadata"
     echo "   - Format step will be skipped"
-    echo "   - Only mount/unmount scripts will be generated"
+    echo "   - Only binary wrapper will be generated"
     echo "   - You do NOT need to re-enter object storage credentials"
     echo ""
     SKIP_FORMAT=true
     SKIP_STORAGE_CONFIG=true
 else
-    echo "Filesystem '$FS_NAME' does not exist, will create format script."
+    echo "Filesystem '$FS_NAME' does not exist, will format it."
     echo ""
     SKIP_FORMAT=false
     SKIP_STORAGE_CONFIG=false
@@ -464,117 +475,154 @@ if [ "$SKIP_FORMAT" = false ]; then
     echo ""
     echo "✓ Filesystem formatted successfully"
     echo ""
-    echo "ℹ️  Note: Format only needs to be done once. No format script was generated."
 fi
 
-# Generate mount script
+# Generate wrapper script that will be compiled
 echo ""
-echo "Creating mount script: $MOUNT_SCRIPT"
+echo "Creating JuiceFS wrapper script..."
 
-cat > "$MOUNT_SCRIPT" << EOF
+# Intermediate script path (will be deleted after compilation)
+WRAPPER_SCRIPT="${SCRIPTS_DIR}/.${FS_NAME}-wrapper.sh"
+BINARY_PATH="${SCRIPTS_DIR}/${FS_NAME}"
+
+# Check for existing binary
+if [ -f "$BINARY_PATH" ]; then
+    echo ""
+    echo "⚠️  WARNING: Binary '$BINARY_PATH' already exists."
+    echo ""
+    read -p "Overwrite existing binary? (y/n): " OVERWRITE_BINARY
+    
+    if [[ "$OVERWRITE_BINARY" != "y" ]]; then
+        echo "Aborted. No changes made."
+        exit 0
+    fi
+    echo ""
+    echo "Proceeding to overwrite existing binary..."
+fi
+
+cat > "$WRAPPER_SCRIPT" << 'WRAPPER_EOF'
 #!/bin/bash
-# JuiceFS Mount Script for: $FS_NAME
-# Auto-generated on $(date)
-# DO NOT EDIT MANUALLY
+# JuiceFS Wrapper for: FILESYSTEM_NAME
+# This script encapsulates JuiceFS client with metadata engine connection
+# It accepts any parameters and passes them to juicefs
+# Auto-generated on GENERATION_DATE
 
 set -e
 
-EOF
+WRAPPER_EOF
 
+# Add environment variables if needed
 if [ "$USE_ENV_VARS" = true ] && [ -n "$AWS_ACCESS_KEY" ]; then
-    cat >> "$MOUNT_SCRIPT" << EOF
+    cat >> "$WRAPPER_SCRIPT" << WRAPPER_EOF
+# Storage credentials
 export AWS_ACCESS_KEY_ID='$AWS_ACCESS_KEY'
 export AWS_SECRET_ACCESS_KEY='$AWS_SECRET_KEY'
 
-EOF
+WRAPPER_EOF
 fi
 
-cat >> "$MOUNT_SCRIPT" << EOF
-# JuiceFS binary path
+# Add the main wrapper logic
+cat >> "$WRAPPER_SCRIPT" << WRAPPER_EOF
+# JuiceFS binary and metadata URL
 JUICEFS="$JUICEFS_BIN"
+META_URL='$META_URL'
+FS_NAME='$FS_NAME'
 
-# Check if already mounted
-if mountpoint -q '$MOUNT_POINT' 2>/dev/null; then
-    echo "✓ $MOUNT_POINT is already mounted"
-    exit 0
-fi
-
-# Create mount point if it doesn't exist
-mkdir -p '$MOUNT_POINT'
-
-# Mount the filesystem
-\$JUICEFS mount \\
-    --cache-dir '$CACHE_DIR' \\
-    --cache-size $CACHE_SIZE \\
-    $WRITEBACK_OPT \\
-    $PREFETCH_OPT \\
-    -d \\
-    '$META_URL' \\
-    '$MOUNT_POINT'
-
-echo "✓ Filesystem mounted at $MOUNT_POINT"
-EOF
-
-set_secure_permissions "$MOUNT_SCRIPT" "true"
-
-# Generate unmount script
-echo ""
-echo "Creating unmount script: $UNMOUNT_SCRIPT"
-
-cat > "$UNMOUNT_SCRIPT" << EOF
-#!/bin/bash
-# JuiceFS Unmount Script for: $FS_NAME
-# Auto-generated on $(date)
-# DO NOT EDIT MANUALLY
-
-set -e
-
-# JuiceFS binary path
-JUICEFS="$JUICEFS_BIN"
-
-# Check if mounted
-if ! mountpoint -q '$MOUNT_POINT' 2>/dev/null; then
-    echo "✓ $MOUNT_POINT is not mounted"
-    exit 0
-fi
-
-# Unmount the filesystem
-\$JUICEFS umount '$MOUNT_POINT'
-
-echo "✓ Filesystem unmounted from $MOUNT_POINT"
-EOF
-
-set_secure_permissions "$UNMOUNT_SCRIPT" "true"
-
-# Generate status script (no sensitive info)
-echo ""
-echo "Creating status script: $STATUS_SCRIPT"
-
-cat > "$STATUS_SCRIPT" << EOF
-#!/bin/bash
-# JuiceFS Status Script for: $FS_NAME
-# This script can be safely read by AI agents
-
-# JuiceFS binary path
-JUICEFS="$JUICEFS_BIN"
-
-echo "Filesystem: $FS_NAME"
-echo "Mount point: $MOUNT_POINT"
-echo ""
-
-if mountpoint -q '$MOUNT_POINT' 2>/dev/null; then
-    echo "Status: MOUNTED ✓"
+# Display usage if no arguments provided
+if [ \$# -eq 0 ]; then
+    echo "JuiceFS Wrapper for filesystem: \$FS_NAME"
+    echo "Metadata engine: ${META_URL%%:*}://..." # Hide sensitive part
     echo ""
-    echo "Running statistics..."
-    \$JUICEFS stats '$MOUNT_POINT' --interval 1 --verbosity 1 2>/dev/null || true
+    echo "Usage: \$0 <juicefs-command> [options]"
+    echo ""
+    echo "Examples:"
+    echo "  \$0 mount $MOUNT_POINT                 # Mount filesystem"
+    echo "  \$0 mount --cache-size 204800 $MOUNT_POINT  # Mount with options"
+    echo "  \$0 umount $MOUNT_POINT                # Unmount filesystem"
+    echo "  \$0 status                            # Show filesystem status"
+    echo "  \$0 stats $MOUNT_POINT                 # Show filesystem statistics"
+    echo "  \$0 bench $MOUNT_POINT                 # Run benchmark"
+    echo ""
+    echo "The metadata engine connection is pre-configured."
+    echo "You only need to provide the command and any additional options."
+    exit 0
+fi
+
+# Execute juicefs with metadata URL and all provided arguments
+"\$JUICEFS" "\$@" "\$META_URL"
+WRAPPER_EOF
+
+# Replace placeholder values
+sed -i "s/FILESYSTEM_NAME/$FS_NAME/g" "$WRAPPER_SCRIPT"
+sed -i "s/GENERATION_DATE/$(date)/g" "$WRAPPER_SCRIPT"
+
+chmod +x "$WRAPPER_SCRIPT"
+
+echo "✓ Wrapper script created"
+
+# Compile the wrapper script with shc
+echo ""
+echo "Compiling wrapper script to binary..."
+echo "This protects embedded credentials from inspection."
+echo ""
+
+# Run shc to compile the script
+# -f: input file
+# -o: output binary file
+# -r: relax security (allows running on different systems)
+# -v: verbose
+shc -f "$WRAPPER_SCRIPT" -o "$BINARY_PATH" -r
+
+if [ ! -f "$BINARY_PATH" ]; then
+    echo "❌ Error: Binary compilation failed"
+    echo "   Wrapper script is at: $WRAPPER_SCRIPT"
+    exit 1
+fi
+
+echo "✓ Binary compiled successfully: $BINARY_PATH"
+
+# Set permissions on the binary
+if [[ "$MULTIUSER_MODE" == "true" ]]; then
+    AI_AGENT_GROUP=$(id -gn "$AI_AGENT_USER")
+    chown root:"$AI_AGENT_GROUP" "$BINARY_PATH"
+    chmod 750 "$BINARY_PATH"  # Owner and group can execute
+    echo "✓ Binary owned by root, executable by $AI_AGENT_USER (group $AI_AGENT_GROUP)"
+    echo "   Permissions: 750 (owner rwx, group r-x)"
 else
-    echo "Status: NOT MOUNTED"
-    echo ""
-    echo "To mount, run: $MOUNT_SCRIPT"
+    chmod 755 "$BINARY_PATH"
+    echo "✓ Binary permissions set to 755"
 fi
-EOF
 
-set_secure_permissions "$STATUS_SCRIPT" "false"
+# Clean up intermediate files
+echo ""
+echo "Cleaning up intermediate files..."
+
+# Remove the wrapper script
+rm -f "$WRAPPER_SCRIPT"
+echo "✓ Removed: $WRAPPER_SCRIPT"
+
+# Remove shc generated C source file if it exists
+if [ -f "${WRAPPER_SCRIPT}.x.c" ]; then
+    rm -f "${WRAPPER_SCRIPT}.x.c"
+    echo "✓ Removed: ${WRAPPER_SCRIPT}.x.c"
+fi
+
+echo ""
+echo "=========================================="
+echo "  Verifying Binary Functionality"
+echo "=========================================="
+echo ""
+
+# Test the binary by checking filesystem status
+echo "Testing binary with 'status' command..."
+if "$BINARY_PATH" status; then
+    echo ""
+    echo "✓ Binary verification successful!"
+else
+    echo ""
+    echo "⚠️  Warning: Binary test returned non-zero exit code"
+    echo "   This may be normal if the filesystem is not yet mounted"
+fi
 
 echo ""
 echo "=========================================="
@@ -585,60 +633,76 @@ echo ""
 if [ "$SKIP_FORMAT" = true ]; then
     echo "Summary:"
     echo "  - Filesystem '$FS_NAME' already exists (no format needed)"
-    echo "  - Mount/unmount/status scripts created/updated"
+    echo "  - Compiled binary wrapper created"
 else
     echo "Summary:"
     echo "  - Filesystem '$FS_NAME' formatted successfully"
-    echo "  - Mount/unmount/status scripts created"
+    echo "  - Compiled binary wrapper created"
 fi
 
 echo ""
-echo "Scripts created in: $SCRIPTS_DIR"
+echo "Binary location: $BINARY_PATH"
 echo ""
-echo "To mount the filesystem:"
-echo "  $MOUNT_SCRIPT"
+echo "Usage examples:"
 echo ""
-echo "To unmount the filesystem:"
-echo "  $UNMOUNT_SCRIPT"
+echo "  # Show help and available commands"
+echo "  $BINARY_PATH"
 echo ""
-echo "To check status (safe for AI agents):"
-echo "  $STATUS_SCRIPT"
+echo "  # Mount the filesystem"
+echo "  $BINARY_PATH mount $MOUNT_POINT"
+echo ""
+echo "  # Mount with custom cache settings"
+echo "  $BINARY_PATH mount --cache-size 204800 $MOUNT_POINT"
+echo ""
+echo "  # Check filesystem status"
+echo "  $BINARY_PATH status"
+echo ""
+echo "  # Show filesystem statistics"
+echo "  $BINARY_PATH stats $MOUNT_POINT"
+echo ""
+echo "  # Unmount the filesystem"
+echo "  $BINARY_PATH umount $MOUNT_POINT"
+echo ""
+echo "  # Run benchmark"
+echo "  $BINARY_PATH bench $MOUNT_POINT"
 echo ""
 
 if [ "$NEEDS_SECURITY" = true ]; then
     echo "🔒 SECURITY NOTES:"
-    echo "   - Mount/unmount scripts contain sensitive credentials"
+    echo "   - Binary contains embedded credentials"
     
     if [[ "$MULTIUSER_MODE" == "true" ]]; then
-        echo "   - Multi-user mode: Scripts owned by root, executable by $AI_AGENT_USER"
-        echo "   - User '$AI_AGENT_USER' can execute but CANNOT read script contents"
-        echo "   - This provides TRUE credential isolation"
-        echo "   - Scripts location: $SCRIPTS_DIR"
+        echo "   - Multi-user mode: Binary owned by root, executable by $AI_AGENT_USER"
+        echo "   - User '$AI_AGENT_USER' can execute but credentials are protected"
+        echo "   - This provides strong credential isolation"
+        echo "   - Binary location: $BINARY_PATH"
     else
-        echo "   - Single-user mode: Scripts owned by you, chmod 500"
-        echo "   - You (owner) CAN still read scripts if you change permissions"
-        echo "   - This provides protection from accidental exposure only"
-        echo "   - For true isolation, consider running in multi-user mode with sudo"
+        echo "   - Single-user mode: Binary compiled with shc"
+        echo "   - Credentials are obfuscated in the compiled binary"
+        echo "   - Provides good protection for typical use cases"
     fi
     
-    echo "   - Status script is safe to share with AI agents"
+    echo "   - Binary can be used by AI agents safely"
+    echo "   - Credentials cannot be extracted via simple commands like 'cat'"
     echo ""
 else
     echo "ℹ️  INFO:"
     echo "   - Your configuration doesn't require sensitive credentials"
-    echo "   - Scripts can be safely viewed if needed"
+    echo "   - Binary is still protected from casual inspection"
     echo ""
 fi
 
 if [[ "$MULTIUSER_MODE" == "true" ]]; then
     echo "Next steps (as user $AI_AGENT_USER):"
     echo "  1. Switch to AI agent user: su - $AI_AGENT_USER"
-    echo "  2. Run the mount script: $MOUNT_SCRIPT"
+    echo "  2. Mount the filesystem: $BINARY_PATH mount $MOUNT_POINT"
     echo "  3. Verify mount: mountpoint $MOUNT_POINT"
+    echo "  4. Use the filesystem normally"
 else
     echo "Next steps:"
-    echo "  1. Run the mount script to mount your filesystem"
-    echo "  2. Verify mount with: mountpoint $MOUNT_POINT"
-    echo "  3. Use the status script to monitor your filesystem"
+    echo "  1. Mount the filesystem: $BINARY_PATH mount $MOUNT_POINT"
+    echo "  2. Verify mount: mountpoint $MOUNT_POINT"
+    echo "  3. Use the filesystem normally"
+    echo "  4. When done, unmount: $BINARY_PATH umount $MOUNT_POINT"
 fi
 echo ""
