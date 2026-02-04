@@ -128,8 +128,27 @@ done
 echo "✓ PASS: Storage options present"
 echo ""
 
-# Test 8: Check for credential handling
-echo "Test 8: Checking credential handling..."
+# Test 8: Check for multi-user mode support
+echo "Test 8: Checking multi-user mode support..."
+MULTIUSER_FEATURES=(
+    "Multi-user mode"
+    "Single-user mode"
+    "MULTIUSER_MODE"
+    "AI_AGENT_USER"
+    "set_secure_permissions"
+)
+
+for feature in "${MULTIUSER_FEATURES[@]}"; do
+    if ! grep -q "$feature" "$INIT_SCRIPT"; then
+        echo "❌ FAIL: Missing multi-user feature: $feature"
+        exit 1
+    fi
+done
+echo "✓ PASS: Multi-user mode support present"
+echo ""
+
+# Test 9: Check for credential handling
+echo "Test 9: Checking credential handling..."
 CREDENTIAL_VARS=(
     "AWS_ACCESS_KEY"
     "AWS_SECRET_KEY"
@@ -145,8 +164,8 @@ done
 echo "✓ PASS: Credential handling present"
 echo ""
 
-# Test 9: Validate bash syntax
-echo "Test 9: Validating bash syntax..."
+# Test 10: Validate bash syntax
+echo "Test 10: Validating bash syntax..."
 if ! bash -n "$INIT_SCRIPT"; then
     echo "❌ FAIL: Script has syntax errors"
     exit 1
@@ -165,6 +184,7 @@ echo "  - Security features implemented"
 echo "  - Script generation logic correct"
 echo "  - Metadata engines supported"
 echo "  - Storage options available"
+echo "  - Multi-user mode support implemented"
 echo "  - Credential handling present"
 echo "  - Bash syntax valid"
 echo ""
