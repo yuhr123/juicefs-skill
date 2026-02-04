@@ -164,8 +164,38 @@ done
 echo "✓ PASS: Credential handling present"
 echo ""
 
-# Test 10: Validate bash syntax
-echo "Test 10: Validating bash syntax..."
+# Test 10: Check for existing scripts handling
+echo "Test 10: Checking existing scripts detection..."
+EXISTING_CHECKS=(
+    "Existing scripts found"
+    "EXISTING_SCRIPTS"
+    "overwrite existing scripts"
+)
+
+for check in "${EXISTING_CHECKS[@]}"; do
+    if ! grep -q "$check" "$INIT_SCRIPT"; then
+        echo "❌ FAIL: Missing existing scripts check: $check"
+        exit 1
+    fi
+done
+echo "✓ PASS: Existing scripts handling present"
+echo ""
+
+# Test 11: Check for filesystem status check improvements
+echo "Test 11: Checking filesystem status improvements..."
+if ! grep -q "Filesystem.*already exists" "$INIT_SCRIPT"; then
+    echo "❌ FAIL: Missing filesystem exists message"
+    exit 1
+fi
+if ! grep -q "SKIP_FORMAT" "$INIT_SCRIPT"; then
+    echo "❌ FAIL: Missing SKIP_FORMAT logic"
+    exit 1
+fi
+echo "✓ PASS: Filesystem status checks present"
+echo ""
+
+# Test 12: Validate bash syntax
+echo "Test 12: Validating bash syntax..."
 if ! bash -n "$INIT_SCRIPT"; then
     echo "❌ FAIL: Script has syntax errors"
     exit 1
@@ -186,5 +216,7 @@ echo "  - Metadata engines supported"
 echo "  - Storage options available"
 echo "  - Multi-user mode support implemented"
 echo "  - Credential handling present"
+echo "  - Existing scripts detection implemented"
+echo "  - Filesystem status checks improved"
 echo "  - Bash syntax valid"
 echo ""

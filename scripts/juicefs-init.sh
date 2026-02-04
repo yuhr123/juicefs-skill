@@ -323,6 +323,46 @@ fi
 
 # Create scripts directory
 SCRIPTS_DIR="$(pwd)/juicefs-scripts"
+
+# Check if scripts already exist for this filesystem
+MOUNT_SCRIPT="${SCRIPTS_DIR}/mount-${FS_NAME}.sh"
+UNMOUNT_SCRIPT="${SCRIPTS_DIR}/unmount-${FS_NAME}.sh"
+STATUS_SCRIPT="${SCRIPTS_DIR}/status-${FS_NAME}.sh"
+FORMAT_SCRIPT="${SCRIPTS_DIR}/format-${FS_NAME}.sh"
+
+EXISTING_SCRIPTS=()
+if [ -f "$MOUNT_SCRIPT" ]; then
+    EXISTING_SCRIPTS+=("mount-${FS_NAME}.sh")
+fi
+if [ -f "$UNMOUNT_SCRIPT" ]; then
+    EXISTING_SCRIPTS+=("unmount-${FS_NAME}.sh")
+fi
+if [ -f "$STATUS_SCRIPT" ]; then
+    EXISTING_SCRIPTS+=("status-${FS_NAME}.sh")
+fi
+if [ -f "$FORMAT_SCRIPT" ]; then
+    EXISTING_SCRIPTS+=("format-${FS_NAME}.sh")
+fi
+
+if [ ${#EXISTING_SCRIPTS[@]} -gt 0 ]; then
+    echo ""
+    echo "⚠️  WARNING: Existing scripts found for filesystem '$FS_NAME':"
+    for script in "${EXISTING_SCRIPTS[@]}"; do
+        echo "   - $SCRIPTS_DIR/$script"
+    done
+    echo ""
+    echo "These scripts will be overwritten with new configuration."
+    echo ""
+    read -p "Continue and overwrite existing scripts? (y/n): " OVERWRITE_CONFIRM
+    
+    if [[ "$OVERWRITE_CONFIRM" != "y" ]]; then
+        echo "Aborted. No changes made."
+        exit 0
+    fi
+    echo ""
+    echo "Proceeding to overwrite existing scripts..."
+fi
+
 mkdir -p "$SCRIPTS_DIR"
 
 echo ""
@@ -331,16 +371,21 @@ echo "-----------------------------------------"
 
 # Check if filesystem already exists
 if juicefs status "$META_URL" &>/dev/null; then
-    echo "✓ Filesystem already exists, skipping format."
+    echo "✓ Filesystem '$FS_NAME' already exists"
+    echo ""
+    echo "Existing filesystem information:"
+    juicefs status "$META_URL" 2>/dev/null | head -20 || echo "  (Unable to retrieve details)"
+    echo ""
+    echo "ℹ️  Format step will be skipped. Mount/unmount scripts will be regenerated."
     SKIP_FORMAT=true
 else
-    echo "Filesystem does not exist, will format."
+    echo "Filesystem '$FS_NAME' does not exist, will create format script."
     SKIP_FORMAT=false
 fi
+echo ""
 
 # Generate format script if needed
 if [ "$SKIP_FORMAT" = false ]; then
-    FORMAT_SCRIPT="${SCRIPTS_DIR}/format-${FS_NAME}.sh"
     echo ""
     echo "Creating format script: $FORMAT_SCRIPT"
     
@@ -387,7 +432,6 @@ EOF
 fi
 
 # Generate mount script
-MOUNT_SCRIPT="${SCRIPTS_DIR}/mount-${FS_NAME}.sh"
 echo ""
 echo "Creating mount script: $MOUNT_SCRIPT"
 
@@ -435,7 +479,6 @@ EOF
 set_secure_permissions "$MOUNT_SCRIPT" "true"
 
 # Generate unmount script
-UNMOUNT_SCRIPT="${SCRIPTS_DIR}/unmount-${FS_NAME}.sh"
 echo ""
 echo "Creating unmount script: $UNMOUNT_SCRIPT"
 
@@ -462,7 +505,6 @@ EOF
 set_secure_permissions "$UNMOUNT_SCRIPT" "true"
 
 # Generate status script (no sensitive info)
-STATUS_SCRIPT="${SCRIPTS_DIR}/status-${FS_NAME}.sh"
 echo ""
 echo "Creating status script: $STATUS_SCRIPT"
 
@@ -493,6 +535,18 @@ echo ""
 echo "=========================================="
 echo "  ✓ Initialization Complete!"
 echo "=========================================="
+echo ""
+
+if [ "$SKIP_FORMAT" = true ]; then
+    echo "Summary:"
+    echo "  - Filesystem '$FS_NAME' already exists (no format needed)"
+    echo "  - Mount/unmount/status scripts created/updated"
+else
+    echo "Summary:"
+    echo "  - Filesystem '$FS_NAME' formatted successfully"
+    echo "  - Mount/unmount/status scripts created"
+fi
+
 echo ""
 echo "Scripts created in: $SCRIPTS_DIR"
 echo ""

@@ -40,21 +40,29 @@ Follow the interactive prompts to configure:
 - Cache settings
 - Performance options
 
+**Re-running the script:**
+- If scripts already exist for the same filesystem name, you'll be prompted to confirm overwrite
+- The script checks if the filesystem is already formatted and skips formatting if it exists
+- You can safely re-run the script to regenerate mount/unmount scripts with updated configuration
+
 ### 2. Generated Scripts
 
 The initialization script creates a `juicefs-scripts/` directory with:
 
-- **`format-<name>.sh`** - Formats the filesystem (if needed)
+- **`format-<name>.sh`** - Formats the filesystem (only created if needed)
   - Permissions: 500 (execute-only)
   - Contains: Storage credentials and metadata connection
+  - Not created if filesystem already exists
   
 - **`mount-<name>.sh`** - Mounts the filesystem
   - Permissions: 500 (execute-only)
   - Contains: All credentials and mount options
+  - Checks if already mounted before attempting mount
   
 - **`unmount-<name>.sh`** - Unmounts the filesystem
   - Permissions: 500 (execute-only)
   - Contains: Mount point information
+  - Checks if mounted before attempting unmount
   
 - **`status-<name>.sh`** - Checks filesystem status
   - Permissions: 755 (readable)
@@ -72,6 +80,11 @@ The initialization script creates a `juicefs-scripts/` directory with:
 # Unmount the filesystem
 ./juicefs-scripts/unmount-myfs.sh
 ```
+
+**Idempotent operations:**
+- Mount script checks if already mounted and skips if so
+- Unmount script checks if mounted and skips if not
+- Safe to run multiple times
 
 ## Security Features
 
@@ -215,13 +228,64 @@ Run the test script to validate the initialization script:
 ./scripts/test-init.sh
 ```
 
-This performs 9 tests to ensure:
+This performs 12 tests to ensure:
 - Script exists and is executable
 - Proper bash syntax
 - All security features present
 - All metadata engines supported
 - Storage options available
 - Credential handling correct
+- Existing scripts detection
+- Filesystem status checks
+
+## Re-running and Updates
+
+### Updating Configuration
+
+If you need to change mount options or credentials:
+
+1. Re-run the initialization script:
+   ```bash
+   ./scripts/juicefs-init.sh
+   ```
+
+2. Use the same filesystem name as before
+
+3. The script will:
+   - Detect existing scripts and ask for confirmation to overwrite
+   - Check if filesystem already exists (skip formatting)
+   - Regenerate mount/unmount scripts with new configuration
+
+### Handling Existing Filesystems
+
+The script automatically detects:
+- ✓ If JuiceFS command is installed
+- ✓ If filesystem is already formatted
+- ✓ If scripts already exist for the filesystem name
+
+**Safe re-run behavior:**
+- Won't format an already-formatted filesystem
+- Prompts before overwriting existing scripts
+- Shows existing filesystem status and details
+
+### Example: Changing Mount Options
+
+```bash
+# Initial setup
+./scripts/juicefs-init.sh
+# Filesystem: prod-data
+# Cache size: 100GB
+
+# Later, want to increase cache
+./scripts/juicefs-init.sh
+# Filesystem: prod-data (same name)
+# ⚠️  WARNING: Existing scripts found...
+# Continue? y
+# Cache size: 200GB (new value)
+
+# Result: Mount script updated with new cache size
+# Filesystem not reformatted (already exists)
+```
 
 ## Troubleshooting
 

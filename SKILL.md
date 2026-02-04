@@ -101,6 +101,12 @@ sudo ./scripts/juicefs-init.sh
 # Select option 2
 ```
 
+**Re-running the script:**
+The script is designed to be re-runnable and will:
+- Detect and prompt before overwriting existing scripts
+- Check if filesystem already exists (skip formatting if so)
+- Allow you to update mount options without reformatting
+
 This interactive script will:
 - Prompt for security mode selection
 - Prompt for all sensitive configuration (AK/SK, passwords, URLs)
