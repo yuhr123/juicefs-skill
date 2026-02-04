@@ -23,6 +23,27 @@ juicefs-skill/
 
 ## Installation
 
+### Prerequisites
+
+**JuiceFS Client Must Be Installed**
+
+Before using this skill, install the JuiceFS client on the system where the AI agent runs:
+
+```bash
+# Standard installation (recommended)
+curl -sSL https://d.juicefs.com/install | sh -
+
+# Verify installation
+juicefs version
+```
+
+For multi-user environments or when using `sudo`, ensure JuiceFS is installed system-wide:
+```bash
+sudo install juicefs /usr/local/bin/
+```
+
+See [SKILL.md](SKILL.md) for detailed installation instructions and multi-user setup.
+
 ### For AI Agent Developers
 
 To integrate this skill into your AI agent:

@@ -1,5 +1,36 @@
 # Quick Reference for AI Agents: JuiceFS Security
 
+## Prerequisites: JuiceFS Installation
+
+**BEFORE guiding users to use JuiceFS, ALWAYS check if it's installed:**
+
+```bash
+# Check for JuiceFS
+command -v juicefs || which juicefs
+```
+
+**If NOT installed, guide user to install first:**
+
+```
+⚠️  JuiceFS client is not installed. Please install it first:
+
+Standard installation (installs to /usr/local/bin):
+  curl -sSL https://d.juicefs.com/install | sh -
+
+Manual installation:
+  wget https://github.com/juicedata/juicefs/releases/latest/download/juicefs-linux-amd64.tar.gz
+  tar -zxf juicefs-linux-amd64.tar.gz
+  sudo install juicefs /usr/local/bin/
+
+After installation, verify:
+  juicefs version
+```
+
+**Important for multi-user setups:**
+- Install JuiceFS to a system-wide location like `/usr/local/bin/`
+- Ensure it's accessible to all users (including root when using `sudo`)
+- The initialization script will automatically detect the binary location
+
 ## When User Mentions JuiceFS Setup
 
 ### Step 1: Detect if Credentials Are Needed

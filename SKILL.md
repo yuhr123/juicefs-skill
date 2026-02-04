@@ -11,6 +11,41 @@ metadata:
 
 # JuiceFS Skill
 
+## Prerequisites
+
+**JuiceFS Client Installation Required**
+
+Before using this skill, ensure the JuiceFS client is installed:
+
+### Standard Installation (Recommended)
+```bash
+curl -sSL https://d.juicefs.com/install | sh -
+```
+This installs to `/usr/local/bin/juicefs` (accessible system-wide).
+
+### Manual Installation
+```bash
+wget https://github.com/juicedata/juicefs/releases/latest/download/juicefs-linux-amd64.tar.gz
+tar -zxf juicefs-linux-amd64.tar.gz
+sudo install juicefs /usr/local/bin/
+```
+
+### Verify Installation
+```bash
+juicefs version
+```
+
+### Multi-User Environments
+- Install to system-wide location: `/usr/local/bin/` or `/usr/bin/`
+- Ensure binary is in PATH for all users (including root)
+- The initialization script will automatically detect the binary location
+
+**Common Installation Paths:**
+- `/usr/local/bin/juicefs` (standard)
+- `/usr/bin/juicefs` (system)
+- `$HOME/.juicefs/bin/juicefs` (user-specific)
+- `/opt/juicefs/juicefs` (custom)
+
 ## Overview
 
 JuiceFS is a high-performance POSIX file system designed for cloud-native environments. It separates data and metadata storage:

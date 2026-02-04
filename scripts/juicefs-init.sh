@@ -136,15 +136,57 @@ set_secure_permissions() {
     fi
 }
 
+# Function to find JuiceFS binary
+find_juicefs() {
+    # Check common installation paths
+    local juicefs_paths=(
+        "/usr/local/bin/juicefs"
+        "/usr/bin/juicefs"
+        "$HOME/.juicefs/bin/juicefs"
+        "/opt/juicefs/juicefs"
+    )
+    
+    # First try command in PATH
+    if command -v juicefs &> /dev/null; then
+        echo "juicefs"
+        return 0
+    fi
+    
+    # Try common paths
+    for path in "${juicefs_paths[@]}"; do
+        if [ -x "$path" ]; then
+            echo "$path"
+            return 0
+        fi
+    done
+    
+    return 1
+}
+
 # Check if JuiceFS is installed
-if ! command -v juicefs &> /dev/null; then
-    echo "❌ Error: juicefs command not found. Please install JuiceFS first."
+JUICEFS_BIN=$(find_juicefs)
+if [ $? -ne 0 ]; then
+    echo "❌ Error: juicefs command not found in PATH or common locations."
+    echo ""
+    echo "Searched locations:"
+    echo "  - /usr/local/bin/juicefs"
+    echo "  - /usr/bin/juicefs"
+    echo "  - \$HOME/.juicefs/bin/juicefs"
+    echo "  - /opt/juicefs/juicefs"
     echo ""
     echo "Installation instructions:"
     echo "  curl -sSL https://d.juicefs.com/install | sh -"
     echo ""
+    echo "Or download manually:"
+    echo "  wget https://github.com/juicedata/juicefs/releases/latest/download/juicefs-linux-amd64.tar.gz"
+    echo "  tar -zxf juicefs-linux-amd64.tar.gz"
+    echo "  sudo install juicefs /usr/local/bin/"
+    echo ""
     exit 1
 fi
+
+echo "✓ Found JuiceFS at: $JUICEFS_BIN"
+echo ""
 
 echo "Step 1: Basic Configuration"
 echo "----------------------------"
@@ -274,11 +316,11 @@ echo "Step 3: Checking if filesystem exists..."
 echo "-----------------------------------------"
 
 # Check if filesystem already exists
-if juicefs status "$META_URL" &>/dev/null; then
+if $JUICEFS_BIN status "$META_URL" &>/dev/null; then
     echo "✓ Filesystem '$FS_NAME' already exists"
     echo ""
     echo "Existing filesystem information:"
-    juicefs status "$META_URL" 2>/dev/null | head -20 || echo "  (Unable to retrieve details)"
+    $JUICEFS_BIN status "$META_URL" 2>/dev/null | head -20 || echo "  (Unable to retrieve details)"
     echo ""
     echo "ℹ️  Since the filesystem already exists:"
     echo "   - Storage credentials are already saved in metadata"
@@ -430,7 +472,10 @@ EOF
     fi
 
     cat >> "$FORMAT_SCRIPT" << EOF
-juicefs format \\
+# JuiceFS binary path
+JUICEFS="$JUICEFS_BIN"
+
+\$JUICEFS format \\
     --storage $STORAGE_TYPE \\
     --bucket '$STORAGE_BUCKET' \\
     $COMPRESS_OPT \\
@@ -476,6 +521,9 @@ EOF
 fi
 
 cat >> "$MOUNT_SCRIPT" << EOF
+# JuiceFS binary path
+JUICEFS="$JUICEFS_BIN"
+
 # Check if already mounted
 if mountpoint -q '$MOUNT_POINT' 2>/dev/null; then
     echo "✓ $MOUNT_POINT is already mounted"
@@ -486,7 +534,7 @@ fi
 mkdir -p '$MOUNT_POINT'
 
 # Mount the filesystem
-juicefs mount \\
+\$JUICEFS mount \\
     --cache-dir '$CACHE_DIR' \\
     --cache-size $CACHE_SIZE \\
     $WRITEBACK_OPT \\
@@ -512,6 +560,9 @@ cat > "$UNMOUNT_SCRIPT" << EOF
 
 set -e
 
+# JuiceFS binary path
+JUICEFS="$JUICEFS_BIN"
+
 # Check if mounted
 if ! mountpoint -q '$MOUNT_POINT' 2>/dev/null; then
     echo "✓ $MOUNT_POINT is not mounted"
@@ -519,7 +570,7 @@ if ! mountpoint -q '$MOUNT_POINT' 2>/dev/null; then
 fi
 
 # Unmount the filesystem
-juicefs umount '$MOUNT_POINT'
+\$JUICEFS umount '$MOUNT_POINT'
 
 echo "✓ Filesystem unmounted from $MOUNT_POINT"
 EOF
@@ -535,6 +586,9 @@ cat > "$STATUS_SCRIPT" << EOF
 # JuiceFS Status Script for: $FS_NAME
 # This script can be safely read by AI agents
 
+# JuiceFS binary path
+JUICEFS="$JUICEFS_BIN"
+
 echo "Filesystem: $FS_NAME"
 echo "Mount point: $MOUNT_POINT"
 echo ""
@@ -543,7 +597,7 @@ if mountpoint -q '$MOUNT_POINT' 2>/dev/null; then
     echo "Status: MOUNTED ✓"
     echo ""
     echo "Running statistics..."
-    juicefs stats '$MOUNT_POINT' --interval 1 --verbosity 1 2>/dev/null || true
+    \$JUICEFS stats '$MOUNT_POINT' --interval 1 --verbosity 1 2>/dev/null || true
 else
     echo "Status: NOT MOUNTED"
     echo ""
