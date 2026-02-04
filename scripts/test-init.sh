@@ -43,7 +43,7 @@ echo "Test 3: Checking for required sections..."
 REQUIRED_SECTIONS=(
     "Metadata Engine"
     "Object Storage"
-    "Additional Options"
+    "Mount Options"
     "Summary of Configuration"
     "chmod 500"
 )

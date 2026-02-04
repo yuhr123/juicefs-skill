@@ -40,9 +40,16 @@ Follow the interactive prompts to configure:
 - Cache settings
 - Performance options
 
+**Smart credential handling:**
+- If the filesystem already exists, the script detects it early
+- You do NOT need to re-enter object storage credentials (AK/SK)
+- Storage credentials are already saved in the metadata engine
+- Only mount options need to be configured
+
 **Re-running the script:**
 - If scripts already exist for the same filesystem name, you'll be prompted to confirm overwrite
 - The script checks if the filesystem is already formatted and skips formatting if it exists
+- For existing filesystems, storage credential prompts are skipped automatically
 - You can safely re-run the script to regenerate mount/unmount scripts with updated configuration
 
 ### 2. Generated Scripts
@@ -267,6 +274,19 @@ The script automatically detects:
 - Won't format an already-formatted filesystem
 - Prompts before overwriting existing scripts
 - Shows existing filesystem status and details
+- **Skips storage credential prompts for existing filesystems** (credentials already in metadata)
+
+**Key benefit:** When working with an existing filesystem, you only need to provide:
+- Filesystem name
+- Metadata engine URL
+- Mount options (cache, prefetch, etc.)
+
+You do NOT need to re-enter:
+- Object storage credentials (AK/SK)
+- Bucket URLs
+- Storage configuration
+
+This is because JuiceFS stores storage credentials in the metadata engine during formatting, and they're retrieved automatically during mount.
 
 ### Example: Changing Mount Options
 
@@ -279,12 +299,39 @@ The script automatically detects:
 # Later, want to increase cache
 ./scripts/juicefs-init.sh
 # Filesystem: prod-data (same name)
+# Metadata: redis://localhost:6379/1
+# ✓ Filesystem already exists (shows info)
+# Step 4: Object Storage Configuration
+# ✓ Skipped (filesystem already exists, credentials already stored)
 # ⚠️  WARNING: Existing scripts found...
 # Continue? y
 # Cache size: 200GB (new value)
 
 # Result: Mount script updated with new cache size
+# No need to re-enter S3 credentials!
 # Filesystem not reformatted (already exists)
+```
+
+### Example: Existing Filesystem on New Machine
+
+```bash
+# You have a JuiceFS filesystem already formatted
+# Moving to a new machine or re-configuring
+
+./scripts/juicefs-init.sh
+# Filesystem: prod-data
+# Metadata: redis://prod-redis:6379/1
+
+# ✓ Filesystem 'prod-data' already exists
+# 
+# ℹ️  Since the filesystem already exists:
+#    - Storage credentials are already saved in metadata
+#    - Format step will be skipped
+#    - Only mount/unmount scripts will be generated
+#    - You do NOT need to re-enter object storage credentials
+
+# Configure mount options (cache, prefetch, etc.)
+# Scripts created without asking for S3 AK/SK!
 ```
 
 ## Troubleshooting

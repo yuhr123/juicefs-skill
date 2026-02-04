@@ -227,104 +227,10 @@ case $META_CHOICE in
         ;;
 esac
 
-echo ""
-echo "Step 3: Object Storage"
-echo "----------------------"
-echo "Choose object storage:"
-echo "  1) Amazon S3"
-echo "  2) Local filesystem"
-echo "  3) Other (custom)"
-read -p "Select (1-3): " STORAGE_CHOICE
-
-case $STORAGE_CHOICE in
-    1)
-        read -p "S3 bucket URL (e.g., https://mybucket.s3.amazonaws.com): " BUCKET_URL
-        read -p "AWS Access Key ID: " AWS_ACCESS_KEY
-        read -sp "AWS Secret Access Key: " AWS_SECRET_KEY
-        echo ""
-        STORAGE_TYPE="s3"
-        STORAGE_BUCKET="$BUCKET_URL"
-        NEEDS_SECURITY=true
-        USE_ENV_VARS=true
-        ;;
-    2)
-        read -p "Local storage path (e.g., /data/jfs-storage): " LOCAL_PATH
-        STORAGE_TYPE="file"
-        STORAGE_BUCKET="$LOCAL_PATH"
-        USE_ENV_VARS=false
-        ;;
-    3)
-        read -p "Storage type (e.g., oss, azure, gcs): " STORAGE_TYPE
-        read -p "Bucket URL: " STORAGE_BUCKET
-        read -p "Does this storage require access keys? (y/n): " NEEDS_KEYS
-        if [[ "$NEEDS_KEYS" == "y" ]]; then
-            read -p "Access Key ID: " AWS_ACCESS_KEY
-            read -sp "Secret Access Key: " AWS_SECRET_KEY
-            echo ""
-            NEEDS_SECURITY=true
-            USE_ENV_VARS=true
-        else
-            USE_ENV_VARS=false
-        fi
-        ;;
-    *)
-        echo "❌ Invalid choice"
-        exit 1
-        ;;
-esac
-
-echo ""
-echo "Step 4: Additional Options"
-echo "--------------------------"
-read -p "Enable compression? (y/n, default n): " ENABLE_COMPRESS
-COMPRESS_OPT=""
-if [[ "$ENABLE_COMPRESS" == "y" ]]; then
-    COMPRESS_OPT="--compress lz4"
-fi
-
-read -p "Cache directory (default ~/.juicefs/cache): " CACHE_DIR
-CACHE_DIR=${CACHE_DIR:-~/.juicefs/cache}
-
-read -p "Cache size in MiB (default 102400 = 100GB): " CACHE_SIZE
-CACHE_SIZE=${CACHE_SIZE:-102400}
-
-read -p "Enable writeback cache? (y/n, default n): " ENABLE_WRITEBACK
-WRITEBACK_OPT=""
-if [[ "$ENABLE_WRITEBACK" == "y" ]]; then
-    WRITEBACK_OPT="--writeback"
-fi
-
-read -p "Enable prefetch? Enter number of threads (0 to disable, default 0): " PREFETCH_THREADS
-PREFETCH_OPT=""
-if [[ "$PREFETCH_THREADS" =~ ^[1-9][0-9]*$ ]]; then
-    PREFETCH_OPT="--prefetch $PREFETCH_THREADS"
-fi
-
-echo ""
-echo "=========================================="
-echo "Summary of Configuration"
-echo "=========================================="
-echo "Filesystem Name: $FS_NAME"
-echo "Mount Point: $MOUNT_POINT"
-echo "Metadata Engine: ${META_URL%%:*}://..." # Hide sensitive part
-echo "Storage Type: $STORAGE_TYPE"
-echo "Storage Bucket: $STORAGE_BUCKET"
-echo "Cache Dir: $CACHE_DIR"
-echo "Cache Size: ${CACHE_SIZE} MiB"
-echo "Compression: ${ENABLE_COMPRESS:-n}"
-echo "Writeback: ${ENABLE_WRITEBACK:-n}"
-echo "Prefetch: ${PREFETCH_THREADS:-0} threads"
-echo ""
-read -p "Proceed with these settings? (y/n): " CONFIRM
-if [[ "$CONFIRM" != "y" ]]; then
-    echo "Aborted."
-    exit 0
-fi
-
-# Create scripts directory
+# Create scripts directory early to check for existing scripts
 SCRIPTS_DIR="$(pwd)/juicefs-scripts"
 
-# Check if scripts already exist for this filesystem
+# Check for existing scripts for this filesystem
 MOUNT_SCRIPT="${SCRIPTS_DIR}/mount-${FS_NAME}.sh"
 UNMOUNT_SCRIPT="${SCRIPTS_DIR}/unmount-${FS_NAME}.sh"
 STATUS_SCRIPT="${SCRIPTS_DIR}/status-${FS_NAME}.sh"
@@ -363,10 +269,8 @@ if [ ${#EXISTING_SCRIPTS[@]} -gt 0 ]; then
     echo "Proceeding to overwrite existing scripts..."
 fi
 
-mkdir -p "$SCRIPTS_DIR"
-
 echo ""
-echo "Step 5: Checking if filesystem exists..."
+echo "Step 3: Checking if filesystem exists..."
 echo "-----------------------------------------"
 
 # Check if filesystem already exists
@@ -376,13 +280,131 @@ if juicefs status "$META_URL" &>/dev/null; then
     echo "Existing filesystem information:"
     juicefs status "$META_URL" 2>/dev/null | head -20 || echo "  (Unable to retrieve details)"
     echo ""
-    echo "ℹ️  Format step will be skipped. Mount/unmount scripts will be regenerated."
+    echo "ℹ️  Since the filesystem already exists:"
+    echo "   - Storage credentials are already saved in metadata"
+    echo "   - Format step will be skipped"
+    echo "   - Only mount/unmount scripts will be generated"
+    echo "   - You do NOT need to re-enter object storage credentials"
+    echo ""
     SKIP_FORMAT=true
+    SKIP_STORAGE_CONFIG=true
 else
     echo "Filesystem '$FS_NAME' does not exist, will create format script."
+    echo ""
     SKIP_FORMAT=false
+    SKIP_STORAGE_CONFIG=false
 fi
+
+# Only ask for storage configuration if filesystem doesn't exist
+if [ "$SKIP_STORAGE_CONFIG" = false ]; then
+    echo ""
+    echo "Step 4: Object Storage Configuration"
+    echo "-------------------------------------"
+    echo "Choose object storage:"
+    echo "  1) Amazon S3"
+    echo "  2) Local filesystem"
+    echo "  3) Other (custom)"
+    read -p "Select (1-3): " STORAGE_CHOICE
+
+    case $STORAGE_CHOICE in
+        1)
+            read -p "S3 bucket URL (e.g., https://mybucket.s3.amazonaws.com): " BUCKET_URL
+            read -p "AWS Access Key ID: " AWS_ACCESS_KEY
+            read -sp "AWS Secret Access Key: " AWS_SECRET_KEY
+            echo ""
+            STORAGE_TYPE="s3"
+            STORAGE_BUCKET="$BUCKET_URL"
+            NEEDS_SECURITY=true
+            USE_ENV_VARS=true
+            ;;
+        2)
+            read -p "Local storage path (e.g., /data/jfs-storage): " LOCAL_PATH
+            STORAGE_TYPE="file"
+            STORAGE_BUCKET="$LOCAL_PATH"
+            USE_ENV_VARS=false
+            ;;
+        3)
+            read -p "Storage type (e.g., oss, azure, gcs): " STORAGE_TYPE
+            read -p "Bucket URL: " STORAGE_BUCKET
+            read -p "Does this storage require access keys? (y/n): " NEEDS_KEYS
+            if [[ "$NEEDS_KEYS" == "y" ]]; then
+                read -p "Access Key ID: " AWS_ACCESS_KEY
+                read -sp "Secret Access Key: " AWS_SECRET_KEY
+                echo ""
+                NEEDS_SECURITY=true
+                USE_ENV_VARS=true
+            else
+                USE_ENV_VARS=false
+            fi
+            ;;
+        *)
+            echo "❌ Invalid choice"
+            exit 1
+            ;;
+    esac
+else
+    echo ""
+    echo "Step 4: Object Storage Configuration"
+    echo "-------------------------------------"
+    echo "✓ Skipped (filesystem already exists, credentials already stored)"
+fi
+
 echo ""
+echo "Step 5: Mount Options"
+echo "---------------------"
+read -p "Enable compression? (y/n, default n): " ENABLE_COMPRESS
+COMPRESS_OPT=""
+if [[ "$ENABLE_COMPRESS" == "y" ]]; then
+    COMPRESS_OPT="--compress lz4"
+fi
+
+read -p "Cache directory (default ~/.juicefs/cache): " CACHE_DIR
+CACHE_DIR=${CACHE_DIR:-~/.juicefs/cache}
+
+read -p "Cache size in MiB (default 102400 = 100GB): " CACHE_SIZE
+CACHE_SIZE=${CACHE_SIZE:-102400}
+
+read -p "Enable writeback cache? (y/n, default n): " ENABLE_WRITEBACK
+WRITEBACK_OPT=""
+if [[ "$ENABLE_WRITEBACK" == "y" ]]; then
+    WRITEBACK_OPT="--writeback"
+fi
+
+read -p "Enable prefetch? Enter number of threads (0 to disable, default 0): " PREFETCH_THREADS
+PREFETCH_OPT=""
+if [[ "$PREFETCH_THREADS" =~ ^[1-9][0-9]*$ ]]; then
+    PREFETCH_OPT="--prefetch $PREFETCH_THREADS"
+fi
+
+echo ""
+echo "=========================================="
+echo "Summary of Configuration"
+echo "=========================================="
+echo "Filesystem Name: $FS_NAME"
+echo "Mount Point: $MOUNT_POINT"
+echo "Metadata Engine: ${META_URL%%:*}://..." # Hide sensitive part
+
+if [ "$SKIP_STORAGE_CONFIG" = false ]; then
+    echo "Storage Type: $STORAGE_TYPE"
+    echo "Storage Bucket: $STORAGE_BUCKET"
+else
+    echo "Storage: (Using existing filesystem configuration)"
+fi
+
+echo "Cache Dir: $CACHE_DIR"
+echo "Cache Size: ${CACHE_SIZE} MiB"
+echo "Compression: ${ENABLE_COMPRESS:-n}"
+echo "Writeback: ${ENABLE_WRITEBACK:-n}"
+echo "Prefetch: ${PREFETCH_THREADS:-0} threads"
+echo ""
+read -p "Proceed with these settings? (y/n): " CONFIRM
+if [[ "$CONFIRM" != "y" ]]; then
+    echo "Aborted."
+    exit 0
+fi
+
+# Create scripts directory
+mkdir -p "$SCRIPTS_DIR"
 
 # Generate format script if needed
 if [ "$SKIP_FORMAT" = false ]; then
