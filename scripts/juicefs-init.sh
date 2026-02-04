@@ -183,13 +183,6 @@ echo ""
 echo "Step 1: Basic Configuration"
 echo "----------------------------"
 read -p "Filesystem name: " FS_NAME
-read -p "Mount point (e.g., /mnt/jfs): " MOUNT_POINT
-
-# Validate mount point
-if [ -z "$MOUNT_POINT" ]; then
-    echo "❌ Error: Mount point cannot be empty"
-    exit 1
-fi
 
 echo ""
 echo "Step 2: Metadata Engine"
@@ -376,7 +369,6 @@ echo "=========================================="
 echo "Summary of Configuration"
 echo "=========================================="
 echo "Filesystem Name: $FS_NAME"
-echo "Mount Point: $MOUNT_POINT"
 echo "Metadata Engine: ${META_URL%%:*}://..." # Hide sensitive part
 
 if [ "$SKIP_STORAGE_CONFIG" = false ]; then
@@ -485,12 +477,12 @@ if [ $# -eq 0 ]; then
     echo "Usage: $0 <juicefs-command> [options]"
     echo ""
     echo "Examples:"
-    echo "  $0 mount MOUNT_POINT_PLACEHOLDER                 # Mount filesystem"
-    echo "  $0 mount --cache-size 204800 MOUNT_POINT_PLACEHOLDER  # Mount with options"
-    echo "  $0 umount MOUNT_POINT_PLACEHOLDER                # Unmount filesystem"
-    echo "  $0 status                                        # Show filesystem status"
-    echo "  $0 stats MOUNT_POINT_PLACEHOLDER                 # Show filesystem statistics"
-    echo "  $0 bench MOUNT_POINT_PLACEHOLDER                 # Run benchmark"
+    echo "  $0 mount /mnt/jfs                           # Mount filesystem"
+    echo "  $0 mount --cache-size 204800 /mnt/jfs      # Mount with options"
+    echo "  $0 umount /mnt/jfs                          # Unmount filesystem"
+    echo "  $0 status                                   # Show filesystem status"
+    echo "  $0 stats /mnt/jfs                           # Show filesystem statistics"
+    echo "  $0 bench /mnt/jfs                           # Run benchmark"
     echo ""
     echo "The metadata engine connection is pre-configured."
     echo "You only need to provide the command and any additional options."
@@ -539,7 +531,6 @@ WRAPPER_EOF
 sed "s|JUICEFS_BIN_PLACEHOLDER|$JUICEFS_BIN|g" "$WRAPPER_SCRIPT" | \
 sed "s|META_URL_PLACEHOLDER|$META_URL|g" | \
 sed "s/FILESYSTEM_NAME/$FS_NAME/g" | \
-sed "s|MOUNT_POINT_PLACEHOLDER|$MOUNT_POINT|g" | \
 sed "s/GENERATION_DATE/$(date)/g" > "${WRAPPER_SCRIPT}.tmp"
 
 mv "${WRAPPER_SCRIPT}.tmp" "$WRAPPER_SCRIPT"
@@ -631,23 +622,23 @@ echo ""
 echo "  # Show help and available commands"
 echo "  $BINARY_PATH"
 echo ""
-echo "  # Mount the filesystem"
-echo "  $BINARY_PATH mount $MOUNT_POINT"
+echo "  # Mount the filesystem (specify mount point)"
+echo "  $BINARY_PATH mount /mnt/jfs"
 echo ""
 echo "  # Mount with custom cache settings"
-echo "  $BINARY_PATH mount --cache-size 204800 $MOUNT_POINT"
+echo "  $BINARY_PATH mount --cache-size 204800 /mnt/jfs"
 echo ""
 echo "  # Check filesystem status"
 echo "  $BINARY_PATH status"
 echo ""
-echo "  # Show filesystem statistics"
-echo "  $BINARY_PATH stats $MOUNT_POINT"
+echo "  # Show filesystem statistics (after mounting)"
+echo "  $BINARY_PATH stats /mnt/jfs"
 echo ""
 echo "  # Unmount the filesystem"
-echo "  $BINARY_PATH umount $MOUNT_POINT"
+echo "  $BINARY_PATH umount /mnt/jfs"
 echo ""
-echo "  # Run benchmark"
-echo "  $BINARY_PATH bench $MOUNT_POINT"
+echo "  # Run benchmark (after mounting)"
+echo "  $BINARY_PATH bench /mnt/jfs"
 echo ""
 
 if [ "$NEEDS_SECURITY" = true ]; then
@@ -670,7 +661,7 @@ fi
 
 echo "Next steps (as user $AI_AGENT_USER):"
 echo "  1. Switch to AI agent user: su - $AI_AGENT_USER"
-echo "  2. Mount the filesystem: $BINARY_PATH mount $MOUNT_POINT"
-echo "  3. Verify mount: mountpoint $MOUNT_POINT"
+echo "  2. Mount the filesystem: $BINARY_PATH mount /mnt/jfs"
+echo "  3. Verify mount: mountpoint /mnt/jfs"
 echo "  4. Use the filesystem normally"
 echo ""

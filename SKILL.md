@@ -185,7 +185,6 @@ sudo ./scripts/juicefs-init.sh
 # Enter AI agent username: aiagent
 # Follow prompts to enter:
 # - Filesystem name: prod-data
-# - Mount point: /mnt/jfs
 # - Redis: localhost:6379 with password
 # - S3 bucket + AWS credentials
 # - Cache settings
@@ -198,7 +197,7 @@ sudo ./scripts/juicefs-init.sh
 # Switch to AI agent user
 su - aiagent
 
-# Mount filesystem (credentials are in compiled binary)
+# Mount filesystem (specify mount point at runtime)
 ./juicefs-scripts/prod-data mount /mnt/jfs
 
 # Check status

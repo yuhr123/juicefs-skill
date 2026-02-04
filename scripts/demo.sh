@@ -33,7 +33,6 @@ $ sudo ./scripts/juicefs-init.sh
 Prompts for:
   ✓ AI agent username: aiagent
   ✓ Filesystem name: prod-data
-  ✓ Mount point: /mnt/jfs
   ✓ Metadata engine: Redis with password
   ✓ Object storage: S3 with AK/SK
   ✓ Cache and performance settings
@@ -45,6 +44,8 @@ Creates:
   ✓ Binary named after filesystem: juicefs-scripts/prod-data
   ✓ Binary owned by root, executable by aiagent user
   ✓ Cleans up intermediate files (.sh, .x.c)
+
+Note: Mount point is specified at runtime, not during initialization
 
 ┌─────────────────────────────────────────────────────────────┐
 │ Step 2: AI Agent can safely use the compiled binary         │
