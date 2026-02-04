@@ -302,6 +302,6 @@ This skill is provided as a reference for JuiceFS Community Edition (Apache Lice
 
 - **Skill Name**: juicefs-skill
 - **Version**: 1.0
-- **Author**: Herald Yu & Github Copilot
+- **Author**: Herald Yu & GitHub Copilot
 - **Based on**: JuiceFS Community Edition documentation
 - **Format**: [Agent Skills specification](https://agentskills.io)
