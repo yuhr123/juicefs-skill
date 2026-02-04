@@ -151,13 +151,13 @@ For comprehensive details, see the [references directory](references/).
 
 ## 🔒 Security: Protecting Credentials
 
-When using JuiceFS with AI agents, sensitive credentials (AK/SK, passwords) should NOT be exposed to the AI model. This skill includes a secure initialization script with two deployment modes:
+When using JuiceFS with AI agents, sensitive credentials (AK/SK, passwords) should NOT be exposed to the AI model. This skill includes a secure initialization script that compiles credentials into binaries using shc (Shell Script Compiler):
 
 ### Using the Initialization Script
 
 **Multi-user mode (RECOMMENDED for production):**
 ```bash
-# Run as root/admin to create scripts for AI agent user
+# Run as root/admin to create binary for AI agent user
 sudo ./scripts/juicefs-init.sh
 # Select option 1, specify AI agent username
 ```
@@ -171,19 +171,19 @@ sudo ./scripts/juicefs-init.sh
 
 ### Security Models
 
-**Multi-user mode** provides TRUE credential isolation:
+**Multi-user mode** provides strong credential isolation:
 1. ✅ Run init script as root/admin
-2. ✅ Scripts owned by root, executable by AI agent user  
-3. ✅ AI agent user can execute but CANNOT read scripts
-4. ✅ True protection - AI agent cannot access credentials
+2. ✅ Binary owned by root, executable by AI agent user  
+3. ✅ AI agent user can execute but credentials are compiled into binary
+4. ✅ Strong protection - credentials obfuscated in binary format
 5. ✅ Proper user separation enforced by OS
 
-**Single-user mode** provides LIMITED protection:
-1. ⚠️ Same user runs init and AI agent
-2. ⚠️ Scripts owned by user, chmod 500 (execute-only)
-3. ⚠️ Owner can still change permissions if needed
-4. ⚠️ Protects from accidental exposure, not intentional access
-5. ✓ Suitable for development or trusted environments
+**Single-user mode** provides good protection:
+1. ✓ Binary compiled with shc (Shell Script Compiler)
+2. ✓ Credentials embedded and obfuscated in binary
+3. ✓ Cannot be read with simple commands like `cat`
+4. ✓ Suitable for development or trusted environments
+5. ⚠️ Advanced users with decompilation tools may extract information
 
 ### When to Use Secure Initialization
 
@@ -195,14 +195,31 @@ sudo ./scripts/juicefs-init.sh
 **Not required for:**
 - Local storage + SQLite3 (no credentials)
 
-### Generated Scripts
+### Generated Binary
 
 After initialization, you'll have:
-- `juicefs-scripts/mount-<name>.sh` - Mount filesystem (execute-only)
-- `juicefs-scripts/unmount-<name>.sh` - Unmount filesystem (execute-only)
-- `juicefs-scripts/status-<name>.sh` - Check status (readable, safe)
+- `juicefs-scripts/<filesystem-name>` - Compiled binary wrapper
 
-In multi-user mode, AI agent user can execute these scripts but cannot read them.
+The binary:
+- Is named after your filesystem for easy identification
+- Contains embedded credentials (compiled, not readable)
+- Accepts any JuiceFS command and parameters
+- Can be used by AI agents safely
+
+**Example usage:**
+```bash
+# Show help
+./juicefs-scripts/prod-data
+
+# Mount filesystem
+./juicefs-scripts/prod-data mount /mnt/jfs
+
+# Check status
+./juicefs-scripts/prod-data status
+
+# Unmount
+./juicefs-scripts/prod-data umount /mnt/jfs
+```
 
 See [SKILL.md](SKILL.md) for detailed security documentation.
 
