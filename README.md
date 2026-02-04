@@ -21,6 +21,100 @@ juicefs-skill/
     └── SUMMARY.md                     # Package summary
 ```
 
+## Installation
+
+### For AI Agent Developers
+
+To integrate this skill into your AI agent:
+
+#### 1. Clone or Download the Skill
+
+```bash
+# Clone this repository
+git clone https://github.com/yuhr123/juicefs-skill.git
+
+# Or download and extract to your skills directory
+cd /path/to/your/skills/directory
+git clone https://github.com/yuhr123/juicefs-skill.git
+```
+
+#### 2. Configure Your Agent
+
+Add the skill directory to your agent's skill discovery path. The exact method depends on your agent implementation:
+
+**For filesystem-based agents** (e.g., Claude, agents with bash/unix environment):
+
+Add the skill path to your agent's system prompt:
+
+```xml
+<available_skills>
+  <skill>
+    <name>juicefs-skill</name>
+    <description>Work with JuiceFS, a high-performance POSIX file system for cloud-native environments. Use when dealing with distributed file systems, object storage backends (S3, Azure, GCS), metadata engines (Redis, MySQL, TiKV), or when users mention JuiceFS, cloud storage, big data, or ML training storage.</description>
+    <location>/path/to/juicefs-skill/SKILL.md</location>
+  </skill>
+</available_skills>
+```
+
+**For tool-based agents**:
+
+Implement a skill activation tool that can:
+1. Parse the YAML frontmatter from `SKILL.md`
+2. Load the full skill content when needed
+3. Access reference files in the `references/` directory
+
+#### 3. Verify Installation
+
+Test that your agent can discover and load the skill:
+
+```bash
+# Using skills-ref validation tool
+skills-ref validate ./juicefs-skill
+
+# Generate prompt XML for your agent
+skills-ref to-prompt ./juicefs-skill
+```
+
+### For End Users
+
+If you're using an AI agent that already supports Agent Skills:
+
+1. **Find your agent's skills directory**
+   - Check your agent's documentation for the skills location
+   - Common paths: `~/.config/agent/skills/`, `~/agent-skills/`, or specified in config
+
+2. **Install the skill**
+   ```bash
+   cd /path/to/agent/skills
+   git clone https://github.com/yuhr123/juicefs-skill.git
+   ```
+
+3. **Restart your agent** (if required)
+   - Some agents auto-discover skills on startup
+   - Others may require a manual reload or restart
+
+4. **Verify the skill is loaded**
+   - Ask your agent: "What skills do you have?"
+   - Test with: "How do I mount a JuiceFS file system?"
+
+### Using skills-ref Library
+
+Install the reference library for validation and prompt generation:
+
+```bash
+pip install skills-ref
+```
+
+Then validate and use:
+
+```bash
+# Validate the skill
+skills-ref validate ./juicefs-skill
+
+# Generate XML for agent prompts
+skills-ref to-prompt ./juicefs-skill
+```
+
 ## Quick Start
 
 The main skill instructions are in [`SKILL.md`](SKILL.md), which contains:
