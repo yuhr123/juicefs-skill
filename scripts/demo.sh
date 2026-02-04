@@ -1,13 +1,14 @@
 #!/bin/bash
 
-# Demo script showing the secure initialization workflow
+# Demo script showing the secure initialization workflow with binary compilation
 # This script demonstrates how to use juicefs-init.sh without requiring actual JuiceFS installation
 
 echo "=========================================="
 echo "  JuiceFS Secure Initialization Demo"
 echo "=========================================="
 echo ""
-echo "This demo shows how to securely set up JuiceFS with credential protection."
+echo "This demo shows how to securely set up JuiceFS with credential protection"
+echo "using compiled binaries (shc - Shell Script Compiler)."
 echo ""
 
 cat << 'EOF'
@@ -19,7 +20,7 @@ User: "I need to mount a JuiceFS filesystem with S3 and Redis."
 Agent: "This requires sensitive credentials (AK/SK, Redis password)."
         "I should NOT access these directly!"
 
-### Solution: Secure Initialization
+### Solution: Secure Initialization with Binary Compilation
 
 ┌─────────────────────────────────────────────────────────────┐
 │ Step 1: User runs initialization script (outside AI)        │
@@ -35,24 +36,33 @@ Prompts for:
   ✓ Cache and performance settings
 
 Creates:
-  ✓ juicefs-scripts/format-prod-data.sh    (chmod 500)
-  ✓ juicefs-scripts/mount-prod-data.sh     (chmod 500)
-  ✓ juicefs-scripts/unmount-prod-data.sh   (chmod 500)
-  ✓ juicefs-scripts/status-prod-data.sh    (chmod 755)
+  ✓ Wrapper script with embedded credentials
+  ✓ Compiles wrapper using shc (Shell Script Compiler)
+  ✓ Binary named after filesystem: juicefs-scripts/prod-data
+  ✓ Cleans up intermediate files (.sh, .x.c)
 
 ┌─────────────────────────────────────────────────────────────┐
-│ Step 2: AI Agent can safely use the scripts                 │
+│ Step 2: AI Agent can safely use the compiled binary         │
 └─────────────────────────────────────────────────────────────┘
 
 Agent executes (without seeing credentials):
 
-  $ ./juicefs-scripts/mount-prod-data.sh
+  # Show available commands
+  $ ./juicefs-scripts/prod-data
+  JuiceFS Wrapper for filesystem: prod-data
+  Usage: ./juicefs-scripts/prod-data <juicefs-command> [options]
+
+  # Mount filesystem
+  $ ./juicefs-scripts/prod-data mount /mnt/jfs
   ✓ Filesystem mounted at /mnt/jfs
 
-  $ ./juicefs-scripts/status-prod-data.sh
+  # Check filesystem status
+  $ ./juicefs-scripts/prod-data status
   Filesystem: prod-data
-  Mount point: /mnt/jfs
   Status: MOUNTED ✓
+
+  # Run with custom options
+  $ ./juicefs-scripts/prod-data mount --cache-size 204800 /mnt/jfs
 
 Agent can now work with files:
   $ ls /mnt/jfs
@@ -60,25 +70,30 @@ Agent can now work with files:
   $ python train.py --data /mnt/jfs/dataset/
 
 When done:
-  $ ./juicefs-scripts/unmount-prod-data.sh
+  $ ./juicefs-scripts/prod-data umount /mnt/jfs
   ✓ Filesystem unmounted
 
 ┌─────────────────────────────────────────────────────────────┐
 │ Step 3: Security verification                                │
 └─────────────────────────────────────────────────────────────┘
 
-Try to read mount script:
-  $ cat ./juicefs-scripts/mount-prod-data.sh
-  cat: ./juicefs-scripts/mount-prod-data.sh: Permission denied
+Try to read binary:
+  $ cat ./juicefs-scripts/prod-data
+  (Binary gibberish - credentials are compiled into binary)
 
-Check permissions:
+  $ strings ./juicefs-scripts/prod-data | grep -i "password"
+  (Credentials are obfuscated by shc compilation)
+
+Check file type:
+  $ file ./juicefs-scripts/prod-data
+  ./juicefs-scripts/prod-data: ELF 64-bit LSB executable
+
   $ ls -l ./juicefs-scripts/
-  -r-x------ mount-prod-data.sh     # Execute-only!
-  -r-x------ unmount-prod-data.sh   # Execute-only!
-  -rwxr-xr-x status-prod-data.sh    # Readable (safe)
+  -rwxr-xr-x prod-data    # Compiled binary
 
-✓ Credentials are protected from AI agent
+✓ Credentials are protected in compiled binary
 ✓ Agent can still perform all operations
+✓ Binary accepts any JuiceFS command and parameters
 ✓ No data leakage!
 
 EOF
@@ -88,11 +103,12 @@ echo "=========================================="
 echo "  Security Benefits"
 echo "=========================================="
 echo ""
-echo "✓ AI agent cannot access AK/SK"
-echo "✓ AI agent cannot access passwords"
-echo "✓ AI agent cannot access metadata URLs"
-echo "✓ Agent can still mount/unmount/check status"
-echo "✓ Agent can work with mounted filesystem"
+echo "✓ AI agent cannot access AK/SK (compiled into binary)"
+echo "✓ AI agent cannot access passwords (compiled into binary)"
+echo "✓ AI agent cannot access metadata URLs (obfuscated)"
+echo "✓ Agent can still run any JuiceFS command"
+echo "✓ One binary per filesystem for easy management"
+echo "✓ Binary accepts any parameters - full flexibility"
 echo ""
 echo "=========================================="
 echo "  When to Use This Approach"
