@@ -4,6 +4,10 @@
 # This script creates mount/unmount scripts with embedded credentials
 # and sets them to execute-only permissions to prevent AI agents from
 # accessing sensitive information like AK/SK and passwords.
+#
+# SECURITY MODEL:
+# - Multi-user mode (RECOMMENDED): Run as root/admin, creates scripts for AI agent user
+# - Single-user mode (LIMITED): Same user runs init and AI agent, provides basic protection
 
 set -e
 
@@ -20,6 +24,117 @@ echo "   - Databases with passwords (Redis, MySQL, PostgreSQL, etc.)"
 echo ""
 echo "   Not needed for: local storage + SQLite3"
 echo ""
+
+# Determine deployment mode
+echo "=========================================="
+echo "  Security Mode Selection"
+echo "=========================================="
+echo ""
+echo "Choose your deployment mode:"
+echo ""
+echo "1) Multi-user mode (RECOMMENDED - Proper isolation)"
+echo "   - Run this script as root or admin user"
+echo "   - Scripts will be owned by root, executable by AI agent user"
+echo "   - AI agent user CANNOT read script contents"
+echo "   - Provides true credential protection"
+echo ""
+echo "2) Single-user mode (LIMITED - Basic protection)"
+echo "   - Run this script as the same user running AI agent"
+echo "   - Scripts owned by you, chmod 500 (execute-only)"
+echo "   - You CAN still read your own files if needed"
+echo "   - Provides protection from accidental exposure, not from yourself"
+echo ""
+read -p "Select mode (1 or 2): " SECURITY_MODE
+
+if [[ "$SECURITY_MODE" == "1" ]]; then
+    echo ""
+    echo "Multi-user mode selected."
+    
+    # Check if running as root
+    if [[ $EUID -ne 0 ]]; then
+        echo ""
+        echo "⚠️  WARNING: Multi-user mode requires root privileges."
+        echo "    Please run this script with sudo:"
+        echo ""
+        echo "    sudo ./scripts/juicefs-init.sh"
+        echo ""
+        exit 1
+    fi
+    
+    # Ask for the AI agent user
+    echo ""
+    read -p "Enter the username that will run the AI agent: " AI_AGENT_USER
+    
+    # Validate user exists
+    if ! id "$AI_AGENT_USER" &>/dev/null; then
+        echo "❌ Error: User '$AI_AGENT_USER' does not exist"
+        echo "   Please create the user first: useradd -m $AI_AGENT_USER"
+        exit 1
+    fi
+    
+    MULTIUSER_MODE=true
+    echo "✓ Scripts will be created for user: $AI_AGENT_USER"
+    
+elif [[ "$SECURITY_MODE" == "2" ]]; then
+    echo ""
+    echo "Single-user mode selected."
+    echo ""
+    echo "⚠️  LIMITATION: Since you are both creating and running scripts,"
+    echo "    you can always read the script contents if needed (you own them)."
+    echo "    This provides protection from accidental exposure, but not from"
+    echo "    intentional access. For true isolation, use multi-user mode."
+    echo ""
+    read -p "Continue with single-user mode? (y/n): " CONTINUE_SINGLE
+    
+    if [[ "$CONTINUE_SINGLE" != "y" ]]; then
+        echo "Aborted."
+        exit 0
+    fi
+    
+    MULTIUSER_MODE=false
+    AI_AGENT_USER=$(whoami)
+    
+else
+    echo "❌ Invalid selection"
+    exit 1
+fi
+
+echo ""
+
+# Function to set secure permissions on generated scripts
+set_secure_permissions() {
+    local script_path="$1"
+    local is_sensitive="$2"  # true for scripts with credentials, false for status scripts
+    
+    if [[ "$is_sensitive" == "true" ]]; then
+        # Scripts with credentials - execute-only
+        chmod 500 "$script_path"
+        
+        if [[ "$MULTIUSER_MODE" == "true" ]]; then
+            # Multi-user mode: change ownership to root, set group to AI agent user's group
+            # AI agent user can execute via group permissions
+            AI_AGENT_GROUP=$(id -gn "$AI_AGENT_USER")
+            chown root:"$AI_AGENT_GROUP" "$script_path"
+            chmod 550 "$script_path"  # Owner (root) read+execute, group (AI agent) execute-only
+            echo "✓ Script owned by root, executable by $AI_AGENT_USER (group $AI_AGENT_GROUP)"
+        else
+            # Single-user mode: owner only
+            echo "✓ Script set to execute-only (chmod 500)"
+            echo "   Note: You (the owner) can still change permissions if needed"
+        fi
+    else
+        # Status script without credentials - readable
+        chmod 755 "$script_path"
+        
+        if [[ "$MULTIUSER_MODE" == "true" ]]; then
+            AI_AGENT_GROUP=$(id -gn "$AI_AGENT_USER")
+            chown root:"$AI_AGENT_GROUP" "$script_path"
+            echo "✓ Status script readable by all users"
+        else
+            echo "✓ Status script readable (chmod 755)"
+        fi
+    fi
+}
 
 # Check if JuiceFS is installed
 if ! command -v juicefs &> /dev/null; then
@@ -258,12 +373,17 @@ juicefs format \\
 echo "✓ Filesystem formatted successfully"
 EOF
 
-    chmod 500 "$FORMAT_SCRIPT"
-    echo "✓ Format script created and set to execute-only (500)"
+    set_secure_permissions "$FORMAT_SCRIPT" "true"
     
     echo ""
     echo "Running format script..."
-    "$FORMAT_SCRIPT"
+    
+    if [[ "$MULTIUSER_MODE" == "true" ]]; then
+        # In multi-user mode, run as the AI agent user
+        sudo -u "$AI_AGENT_USER" "$FORMAT_SCRIPT"
+    else
+        "$FORMAT_SCRIPT"
+    fi
 fi
 
 # Generate mount script
@@ -312,8 +432,7 @@ juicefs mount \\
 echo "✓ Filesystem mounted at $MOUNT_POINT"
 EOF
 
-chmod 500 "$MOUNT_SCRIPT"
-echo "✓ Mount script created and set to execute-only (500)"
+set_secure_permissions "$MOUNT_SCRIPT" "true"
 
 # Generate unmount script
 UNMOUNT_SCRIPT="${SCRIPTS_DIR}/unmount-${FS_NAME}.sh"
@@ -340,8 +459,7 @@ juicefs umount '$MOUNT_POINT'
 echo "✓ Filesystem unmounted from $MOUNT_POINT"
 EOF
 
-chmod 500 "$UNMOUNT_SCRIPT"
-echo "✓ Unmount script created and set to execute-only (500)"
+set_secure_permissions "$UNMOUNT_SCRIPT" "true"
 
 # Generate status script (no sensitive info)
 STATUS_SCRIPT="${SCRIPTS_DIR}/status-${FS_NAME}.sh"
@@ -369,8 +487,7 @@ else
 fi
 EOF
 
-chmod 755 "$STATUS_SCRIPT"
-echo "✓ Status script created (readable)"
+set_secure_permissions "$STATUS_SCRIPT" "false"
 
 echo ""
 echo "=========================================="
@@ -392,9 +509,19 @@ echo ""
 if [ "$NEEDS_SECURITY" = true ]; then
     echo "🔒 SECURITY NOTES:"
     echo "   - Mount/unmount scripts contain sensitive credentials"
-    echo "   - Scripts are set to execute-only (chmod 500)"
-    echo "   - AI agents cannot read these scripts"
-    echo "   - Keep these scripts secure and backed up"
+    
+    if [[ "$MULTIUSER_MODE" == "true" ]]; then
+        echo "   - Multi-user mode: Scripts owned by root, executable by $AI_AGENT_USER"
+        echo "   - User '$AI_AGENT_USER' can execute but CANNOT read script contents"
+        echo "   - This provides TRUE credential isolation"
+        echo "   - Scripts location: $SCRIPTS_DIR"
+    else
+        echo "   - Single-user mode: Scripts owned by you, chmod 500"
+        echo "   - You (owner) CAN still read scripts if you change permissions"
+        echo "   - This provides protection from accidental exposure only"
+        echo "   - For true isolation, consider running in multi-user mode with sudo"
+    fi
+    
     echo "   - Status script is safe to share with AI agents"
     echo ""
 else
@@ -404,8 +531,15 @@ else
     echo ""
 fi
 
-echo "Next steps:"
-echo "  1. Run the mount script to mount your filesystem"
-echo "  2. Verify mount with: mountpoint $MOUNT_POINT"
-echo "  3. Use the status script to monitor your filesystem"
+if [[ "$MULTIUSER_MODE" == "true" ]]; then
+    echo "Next steps (as user $AI_AGENT_USER):"
+    echo "  1. Switch to AI agent user: su - $AI_AGENT_USER"
+    echo "  2. Run the mount script: $MOUNT_SCRIPT"
+    echo "  3. Verify mount: mountpoint $MOUNT_POINT"
+else
+    echo "Next steps:"
+    echo "  1. Run the mount script to mount your filesystem"
+    echo "  2. Verify mount with: mountpoint $MOUNT_POINT"
+    echo "  3. Use the status script to monitor your filesystem"
+fi
 echo ""

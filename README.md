@@ -130,21 +130,39 @@ For comprehensive details, see the [references directory](references/).
 
 ## 🔒 Security: Protecting Credentials
 
-When using JuiceFS with AI agents, sensitive credentials (AK/SK, passwords) should NOT be exposed to the AI model. This skill includes a secure initialization script:
+When using JuiceFS with AI agents, sensitive credentials (AK/SK, passwords) should NOT be exposed to the AI model. This skill includes a secure initialization script with two deployment modes:
 
 ### Using the Initialization Script
 
+**Multi-user mode (RECOMMENDED for production):**
 ```bash
-# Run the interactive initialization script
-./scripts/juicefs-init.sh
+# Run as root/admin to create scripts for AI agent user
+sudo ./scripts/juicefs-init.sh
+# Select option 1, specify AI agent username
 ```
 
-This script will:
-1. ✅ Prompt for all configuration (metadata, storage, credentials)
-2. ✅ Format the filesystem if needed
-3. ✅ Generate mount/unmount scripts with embedded credentials
-4. ✅ Set scripts to execute-only permissions (chmod 500)
-5. ✅ AI agents can run scripts but cannot read credentials
+**Single-user mode (for development):**
+```bash
+# Run as same user that will run AI agent
+./scripts/juicefs-init.sh
+# Select option 2
+```
+
+### Security Models
+
+**Multi-user mode** provides TRUE credential isolation:
+1. ✅ Run init script as root/admin
+2. ✅ Scripts owned by root, executable by AI agent user  
+3. ✅ AI agent user can execute but CANNOT read scripts
+4. ✅ True protection - AI agent cannot access credentials
+5. ✅ Proper user separation enforced by OS
+
+**Single-user mode** provides LIMITED protection:
+1. ⚠️ Same user runs init and AI agent
+2. ⚠️ Scripts owned by user, chmod 500 (execute-only)
+3. ⚠️ Owner can still change permissions if needed
+4. ⚠️ Protects from accidental exposure, not intentional access
+5. ✓ Suitable for development or trusted environments
 
 ### When to Use Secure Initialization
 
@@ -163,7 +181,7 @@ After initialization, you'll have:
 - `juicefs-scripts/unmount-<name>.sh` - Unmount filesystem (execute-only)
 - `juicefs-scripts/status-<name>.sh` - Check status (readable, safe)
 
-AI agents can safely execute these scripts without accessing your credentials.
+In multi-user mode, AI agent user can execute these scripts but cannot read them.
 
 See [SKILL.md](SKILL.md) for detailed security documentation.
 

@@ -23,9 +23,16 @@
 
 To prevent credential exposure to me (the AI agent), please:
 
-1. Run the initialization script yourself:
-   cd /path/to/juicefs-skill
-   ./scripts/juicefs-init.sh
+1. Run the initialization script:
+   
+   For production (proper isolation):
+     sudo ./scripts/juicefs-init.sh
+     # Select option 1 (Multi-user mode)
+     # Specify the username I run as
+   
+   For development (limited protection):
+     ./scripts/juicefs-init.sh
+     # Select option 2 (Single-user mode)
 
 2. Follow the prompts to configure your filesystem
 
@@ -34,7 +41,8 @@ To prevent credential exposure to me (the AI agent), please:
    - Status: ./juicefs-scripts/status-<name>.sh
    - Unmount: ./juicefs-scripts/unmount-<name>.sh
 
-This keeps your AK/SK and passwords secure from me.
+Multi-user mode provides TRUE isolation where I cannot read scripts.
+Single-user mode provides protection from accidental exposure only.
 ```
 
 #### If Credentials NOT Needed (local + sqlite3)

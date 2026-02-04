@@ -75,14 +75,36 @@ The initialization script creates a `juicefs-scripts/` directory with:
 
 ## Security Features
 
-### Execute-Only Permissions
+### Two Security Modes
 
-Scripts containing credentials are set to chmod 500:
-- **Owner can execute** - You can run the script
-- **Owner cannot read** - Even you cannot cat/view the script content
-- **Others have no access** - Complete protection from other users
+**Multi-user mode (RECOMMENDED):**
+- Run init script as root with `sudo`
+- Scripts owned by root, executable by AI agent user
+- AI agent user can execute but CANNOT read scripts
+- True credential isolation enforced by OS
+- Example: `sudo ./scripts/juicefs-init.sh` → select option 1
 
-This prevents AI agents from reading credentials while still allowing them to execute the scripts.
+**Single-user mode (LIMITED):**
+- Run init script as same user running AI agent
+- Scripts owned by you, chmod 500 (execute-only)
+- Owner can still change permissions to read if needed
+- Protects from accidental exposure, not intentional access
+- Example: `./scripts/juicefs-init.sh` → select option 2
+
+### Permission Model
+
+**Multi-user mode:**
+- Scripts owned by root
+- Group ownership set to AI agent user's primary group
+- Permissions: 550 (owner read+execute, group execute-only)
+- AI agent user inherits group execute permission
+- AI agent CANNOT read script contents (no read permission)
+
+**Single-user mode:**
+- Scripts owned by you
+- Permissions: 500 (owner execute-only)
+- Note: Owner can always `chmod 600` to read if needed
+- This is a limitation of single-user approach
 
 ### When Security is Required
 
@@ -97,13 +119,15 @@ Not required for:
 
 ## Example Workflow
 
-### Scenario: Setting up JuiceFS with S3 and Redis
+### Scenario: Setting up JuiceFS with S3 and Redis (Multi-User Mode)
 
-**Step 1: Initialize** (user runs this, outside AI agent)
+**Step 1: Initialize** (admin runs as root)
 ```bash
-./scripts/juicefs-init.sh
+sudo ./scripts/juicefs-init.sh
 
 # Prompts and responses:
+# Security mode: 1 (Multi-user mode)
+# AI agent user: aiagent
 # Filesystem name: prod-data
 # Mount point: /mnt/jfs
 # Metadata Engine: 1 (Redis with password)
@@ -114,12 +138,22 @@ Not required for:
 # AWS Access Key: AKIA...
 # AWS Secret Key: ****
 # ...additional options...
+
+# Scripts created, owned by root, executable by aiagent
 ```
 
-**Step 2: Mount** (AI agent or user can run)
+**Step 2: Mount** (AI agent user or system runs)
 ```bash
+# Switch to AI agent user
+su - aiagent
+
+# Mount the filesystem (can execute, cannot read)
 ./juicefs-scripts/mount-prod-data.sh
 # ✓ Filesystem mounted at /mnt/jfs
+
+# Try to read the script (should fail)
+cat ./juicefs-scripts/mount-prod-data.sh
+# cat: Permission denied ✓
 ```
 
 **Step 3: Use** (AI agent works with mounted filesystem)

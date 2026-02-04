@@ -75,48 +75,81 @@ NOT required for:
 
 Instead of directly running `juicefs format` and `juicefs mount` commands that expose credentials:
 
-**1. User runs the initialization script** (outside AI agent context):
+**1. Choose deployment mode:**
+
+The initialization script supports two security models:
+
+- **Multi-user mode (RECOMMENDED)**: Run as root/admin, creates scripts for AI agent user
+  - Provides TRUE credential isolation
+  - AI agent user can execute but CANNOT read scripts
+  - Scripts owned by root, executable by AI agent user
+  
+- **Single-user mode (LIMITED)**: Same user runs init and AI agent
+  - Provides protection from accidental exposure
+  - Owner can still change permissions to read scripts if needed
+  - Suitable for development or trusted single-user environments
+
+**2. Run the initialization script:**
+
 ```bash
+# For multi-user mode (proper isolation):
+sudo ./scripts/juicefs-init.sh
+# Select option 1, specify AI agent username
+
+# For single-user mode (limited protection):
 ./scripts/juicefs-init.sh
+# Select option 2
 ```
 
 This interactive script will:
+- Prompt for security mode selection
 - Prompt for all sensitive configuration (AK/SK, passwords, URLs)
 - Format the filesystem if needed
 - Generate mount/unmount scripts with embedded credentials
-- Set scripts to execute-only permissions (chmod 500)
-- Scripts can be run but content cannot be read
+- Set proper permissions and ownership based on mode
+- In multi-user mode: scripts owned by root, executable by AI agent user
+- In single-user mode: scripts owned by you, chmod 500 (execute-only)
 
-**2. Generated scripts** (in `juicefs-scripts/` directory):
+**3. Generated scripts** (in `juicefs-scripts/` directory):
 - `format-<name>.sh` - Formats the filesystem (if needed)
 - `mount-<name>.sh` - Mounts the filesystem with credentials
 - `unmount-<name>.sh` - Unmounts the filesystem
 - `status-<name>.sh` - Safe status check (readable, no credentials)
 
-**3. AI Agent usage**:
+**4. AI Agent usage**:
 ```bash
-# AI agents can safely execute these without accessing credentials:
+# Multi-user mode: Switch to AI agent user first
+su - aiagent
+
+# Then AI agent can execute (but not read):
 ./juicefs-scripts/mount-myfs.sh      # Mount filesystem
 ./juicefs-scripts/status-myfs.sh     # Check status
 ./juicefs-scripts/unmount-myfs.sh    # Unmount filesystem
 ```
 
-### Example: Secure Setup Flow
+### Example: Secure Setup Flow (Multi-User Mode)
 
-**Step 1: User initializes** (one-time setup):
+**Step 1: Admin initializes** (one-time setup as root):
 ```bash
 cd /path/to/juicefs-skill
-./scripts/juicefs-init.sh
+sudo ./scripts/juicefs-init.sh
+# Select mode: 1 (Multi-user mode)
+# AI agent user: aiagent
 # Follow prompts to enter:
 # - Filesystem name: prod-data
 # - Mount point: /mnt/jfs
 # - Redis: localhost:6379 with password
 # - S3 bucket + AWS credentials
 # - Cache settings
+# Scripts created, owned by root, executable by aiagent
 ```
 
-**Step 2: User mounts** (or AI agent runs):
+**Step 2: AI agent user mounts**:
 ```bash
+# Switch to AI agent user
+su - aiagent
+
+# Mount filesystem (can execute, cannot read)
 ./juicefs-scripts/mount-prod-data.sh
 ```
 
@@ -124,6 +157,24 @@ cd /path/to/juicefs-skill
 ```bash
 ./juicefs-scripts/status-prod-data.sh
 ```
+
+### Example: Single-User Mode (Limited Protection)
+
+**For development or trusted single-user environments:**
+
+```bash
+cd /path/to/juicefs-skill
+./scripts/juicefs-init.sh
+# Select mode: 2 (Single-user mode)
+# Acknowledge limitation: owner can read if needed
+# Follow configuration prompts
+# Scripts created with chmod 500
+
+# Later, mount as same user
+./juicefs-scripts/mount-prod-data.sh
+```
+
+**Note:** In single-user mode, the owner can always change permissions to read the scripts. This provides protection from accidental exposure but not from intentional access.
 
 ### For AI Agents: Detection and Guidance
 
@@ -141,7 +192,13 @@ When a user asks to format or mount JuiceFS:
 To prevent credential exposure to the AI model:
 
 1. Please run the initialization script yourself:
+   # For production with proper isolation:
+   sudo ./scripts/juicefs-init.sh
+   # Select multi-user mode, specify AI agent username
+   
+   # For development/testing:
    ./scripts/juicefs-init.sh
+   # Select single-user mode (limited protection)
 
 2. Follow the prompts to configure your filesystem
 
@@ -151,6 +208,9 @@ To prevent credential exposure to the AI model:
    - Unmount: ./juicefs-scripts/unmount-<name>.sh
 
 This keeps your AK/SK and passwords secure from the AI model.
+
+Note: For true credential isolation, use multi-user mode where scripts
+are owned by root and executable by the AI agent user.
 ```
 
 ### Insecure Setup (Local Development Only)
