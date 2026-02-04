@@ -552,11 +552,24 @@ fi
 COMMAND="$1"
 shift
 
-# Commands that need META_URL as first argument after command
+# Handle different JuiceFS commands and insert META_URL in the correct position
 case "$COMMAND" in
-    mount|umount|status|config|gc|fsck|dump|load|destroy|clone|snapshot|rmr)
-        # These commands expect: juicefs <command> [options] <META_URL> [other args]
-        # For mount: juicefs mount [options] <META_URL> <MOUNT_POINT>
+    mount)
+        # Mount format: juicefs mount [options] <META_URL> <MOUNT_POINT>
+        # Need to separate options from mount point (last arg)
+        # Build args array
+        args=()
+        while [ $# -gt 1 ]; do
+            args+=("$1")
+            shift
+        done
+        # Last argument is mount point
+        MOUNT_POINT="$1"
+        # Execute: juicefs mount [options] META_URL MOUNT_POINT
+        "$JUICEFS" "$COMMAND" "${args[@]}" "$META_URL" "$MOUNT_POINT"
+        ;;
+    umount|status|config|gc|fsck|dump|load|destroy|clone|snapshot|rmr)
+        # These commands expect: juicefs <command> [options] <META_URL>
         "$JUICEFS" "$COMMAND" "$@" "$META_URL"
         ;;
     format)
