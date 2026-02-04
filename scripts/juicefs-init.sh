@@ -522,39 +522,65 @@ WRAPPER_EOF
 fi
 
 # Add the main wrapper logic
-cat >> "$WRAPPER_SCRIPT" << WRAPPER_EOF
+cat >> "$WRAPPER_SCRIPT" << 'WRAPPER_EOF'
 # JuiceFS binary and metadata URL
-JUICEFS="$JUICEFS_BIN"
-META_URL='$META_URL'
-FS_NAME='$FS_NAME'
+JUICEFS="JUICEFS_BIN_PLACEHOLDER"
+META_URL='META_URL_PLACEHOLDER'
+FS_NAME='FILESYSTEM_NAME'
 
 # Display usage if no arguments provided
-if [ \$# -eq 0 ]; then
-    echo "JuiceFS Wrapper for filesystem: \$FS_NAME"
-    echo "Metadata engine: ${META_URL%%:*}://..." # Hide sensitive part
+if [ $# -eq 0 ]; then
+    echo "JuiceFS Wrapper for filesystem: $FS_NAME"
+    echo "Metadata engine: <configured>"
     echo ""
-    echo "Usage: \$0 <juicefs-command> [options]"
+    echo "Usage: $0 <juicefs-command> [options]"
     echo ""
     echo "Examples:"
-    echo "  \$0 mount $MOUNT_POINT                 # Mount filesystem"
-    echo "  \$0 mount --cache-size 204800 $MOUNT_POINT  # Mount with options"
-    echo "  \$0 umount $MOUNT_POINT                # Unmount filesystem"
-    echo "  \$0 status                            # Show filesystem status"
-    echo "  \$0 stats $MOUNT_POINT                 # Show filesystem statistics"
-    echo "  \$0 bench $MOUNT_POINT                 # Run benchmark"
+    echo "  $0 mount MOUNT_POINT_PLACEHOLDER                 # Mount filesystem"
+    echo "  $0 mount --cache-size 204800 MOUNT_POINT_PLACEHOLDER  # Mount with options"
+    echo "  $0 umount MOUNT_POINT_PLACEHOLDER                # Unmount filesystem"
+    echo "  $0 status                                        # Show filesystem status"
+    echo "  $0 stats MOUNT_POINT_PLACEHOLDER                 # Show filesystem statistics"
+    echo "  $0 bench MOUNT_POINT_PLACEHOLDER                 # Run benchmark"
     echo ""
     echo "The metadata engine connection is pre-configured."
     echo "You only need to provide the command and any additional options."
     exit 0
 fi
 
-# Execute juicefs with metadata URL and all provided arguments
-"\$JUICEFS" "\$@" "\$META_URL"
+# Get the command (first argument)
+COMMAND="$1"
+shift
+
+# Commands that need META_URL as first argument after command
+case "$COMMAND" in
+    mount|umount|status|config|gc|fsck|dump|load|destroy|clone|snapshot|rmr)
+        # These commands expect: juicefs <command> [options] <META_URL> [other args]
+        # For mount: juicefs mount [options] <META_URL> <MOUNT_POINT>
+        "$JUICEFS" "$COMMAND" "$@" "$META_URL"
+        ;;
+    format)
+        # Format needs META_URL before filesystem name
+        # juicefs format [options] <META_URL> <NAME>
+        "$JUICEFS" "$COMMAND" "$@" "$META_URL"
+        ;;
+    *)
+        # For other commands (like stats, bench, info, warmup, etc.) that operate on mount point
+        # juicefs <command> [options] <MOUNT_POINT>
+        # These don't need META_URL
+        "$JUICEFS" "$COMMAND" "$@"
+        ;;
+esac
 WRAPPER_EOF
 
 # Replace placeholder values
-sed -i "s/FILESYSTEM_NAME/$FS_NAME/g" "$WRAPPER_SCRIPT"
-sed -i "s/GENERATION_DATE/$(date)/g" "$WRAPPER_SCRIPT"
+sed "s|JUICEFS_BIN_PLACEHOLDER|$JUICEFS_BIN|g" "$WRAPPER_SCRIPT" | \
+sed "s|META_URL_PLACEHOLDER|$META_URL|g" | \
+sed "s/FILESYSTEM_NAME/$FS_NAME/g" | \
+sed "s|MOUNT_POINT_PLACEHOLDER|$MOUNT_POINT|g" | \
+sed "s/GENERATION_DATE/$(date)/g" > "${WRAPPER_SCRIPT}.tmp"
+
+mv "${WRAPPER_SCRIPT}.tmp" "$WRAPPER_SCRIPT"
 
 chmod +x "$WRAPPER_SCRIPT"
 
