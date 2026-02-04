@@ -4,7 +4,7 @@ description: Work with JuiceFS, a high-performance POSIX file system for cloud-n
 license: Apache-2.0
 compatibility: Requires JuiceFS client, metadata engine (Redis/MySQL/TiKV/SQLite), and object storage access
 metadata:
-  author: yuhr123
+  author: Herald Yu & GitHub Copilot
   version: 1.0
   based_on: JuiceFS Community Edition
 ---
