@@ -43,9 +43,9 @@ echo "Test 3: Checking for required sections..."
 REQUIRED_SECTIONS=(
     "Metadata Engine"
     "Object Storage"
-    "Mount Options"
+    "Format Options"
     "Summary of Configuration"
-    "chmod 500"
+    "shc"
 )
 
 for section in "${REQUIRED_SECTIONS[@]}"; do
@@ -60,10 +60,10 @@ echo ""
 # Test 4: Check security features
 echo "Test 4: Checking security features..."
 SECURITY_FEATURES=(
-    "chmod 500"
+    "shc"
     "NEEDS_SECURITY"
-    "execute-only"
-    "sensitive"
+    "binary"
+    "compile"
 )
 
 for feature in "${SECURITY_FEATURES[@]}"; do
@@ -75,17 +75,17 @@ done
 echo "✓ PASS: Security features present"
 echo ""
 
-# Test 5: Check for script generation
-echo "Test 5: Checking for script generation logic..."
-GENERATED_SCRIPTS=(
-    "mount-"
-    "unmount-"
-    "status-"
+# Test 5: Check for binary generation
+echo "Test 5: Checking for binary generation logic..."
+BINARY_FEATURES=(
+    "WRAPPER_SCRIPT"
+    "BINARY_PATH"
+    "shc -f"
 )
 
-for script_type in "${GENERATED_SCRIPTS[@]}"; do
-    if ! grep -q "$script_type" "$INIT_SCRIPT"; then
-        echo "❌ FAIL: Missing script generation for: $script_type"
+for feature in "${BINARY_FEATURES[@]}"; do
+    if ! grep -q "$feature" "$INIT_SCRIPT"; then
+        echo "❌ FAIL: Missing binary generation feature: $feature"
         exit 1
     fi
 done
@@ -96,7 +96,13 @@ if grep -q "Creating format script" "$INIT_SCRIPT"; then
     exit 1
 fi
 
-echo "✓ PASS: Script generation logic present (mount, unmount, status only)"
+# Check that wrapper can accept parameters
+if ! grep -q '\$@' "$INIT_SCRIPT"; then
+    echo "❌ FAIL: Wrapper should accept parameters (\$@)"
+    exit 1
+fi
+
+echo "✓ PASS: Binary generation logic present"
 echo ""
 
 # Test 6: Check for metadata engine options
@@ -134,23 +140,22 @@ done
 echo "✓ PASS: Storage options present"
 echo ""
 
-# Test 8: Check for multi-user mode support
-echo "Test 8: Checking multi-user mode support..."
-MULTIUSER_FEATURES=(
-    "Multi-user mode"
-    "Single-user mode"
-    "MULTIUSER_MODE"
+# Test 8: Check for root requirement and AI agent user configuration
+echo "Test 8: Checking root requirement and AI agent user configuration..."
+ROOT_FEATURES=(
+    "EUID"
+    "must be run with root"
     "AI_AGENT_USER"
-    "set_secure_permissions"
+    "chown root"
 )
 
-for feature in "${MULTIUSER_FEATURES[@]}"; do
+for feature in "${ROOT_FEATURES[@]}"; do
     if ! grep -q "$feature" "$INIT_SCRIPT"; then
-        echo "❌ FAIL: Missing multi-user feature: $feature"
+        echo "❌ FAIL: Missing root/AI agent feature: $feature"
         exit 1
     fi
 done
-echo "✓ PASS: Multi-user mode support present"
+echo "✓ PASS: Root requirement and AI agent configuration present"
 echo ""
 
 # Test 9: Check for credential handling
@@ -170,21 +175,21 @@ done
 echo "✓ PASS: Credential handling present"
 echo ""
 
-# Test 10: Check for existing scripts handling
-echo "Test 10: Checking existing scripts detection..."
-EXISTING_CHECKS=(
-    "Existing scripts found"
-    "EXISTING_SCRIPTS"
-    "overwrite existing scripts"
+# Test 10: Check for binary verification
+echo "Test 10: Checking binary verification..."
+VERIFICATION_CHECKS=(
+    "Verifying Binary"
+    "Testing binary"
+    "status"
 )
 
-for check in "${EXISTING_CHECKS[@]}"; do
+for check in "${VERIFICATION_CHECKS[@]}"; do
     if ! grep -q "$check" "$INIT_SCRIPT"; then
-        echo "❌ FAIL: Missing existing scripts check: $check"
+        echo "❌ FAIL: Missing verification check: $check"
         exit 1
     fi
 done
-echo "✓ PASS: Existing scripts handling present"
+echo "✓ PASS: Binary verification present"
 echo ""
 
 # Test 11: Check for filesystem status check improvements
@@ -200,8 +205,25 @@ fi
 echo "✓ PASS: Filesystem status checks present"
 echo ""
 
-# Test 12: Validate bash syntax
-echo "Test 12: Validating bash syntax..."
+# Test 12: Check for cleanup logic
+echo "Test 12: Checking cleanup logic..."
+CLEANUP_CHECKS=(
+    "Cleaning up"
+    "rm -f"
+    ".x.c"
+)
+
+for check in "${CLEANUP_CHECKS[@]}"; do
+    if ! grep -q "$check" "$INIT_SCRIPT"; then
+        echo "❌ FAIL: Missing cleanup check: $check"
+        exit 1
+    fi
+done
+echo "✓ PASS: Cleanup logic present"
+echo ""
+
+# Test 13: Validate bash syntax
+echo "Test 13: Validating bash syntax..."
 if ! bash -n "$INIT_SCRIPT"; then
     echo "❌ FAIL: Script has syntax errors"
     exit 1
@@ -216,13 +238,15 @@ echo ""
 echo "Summary:"
 echo "  - Script exists and is executable"
 echo "  - All required sections present"
-echo "  - Security features implemented"
-echo "  - Script generation logic correct"
+echo "  - Security features implemented (shc compilation)"
+echo "  - Binary generation logic correct"
 echo "  - Metadata engines supported"
 echo "  - Storage options available"
-echo "  - Multi-user mode support implemented"
+echo "  - Root requirement enforced"
+echo "  - AI agent user configuration present"
 echo "  - Credential handling present"
-echo "  - Existing scripts detection implemented"
+echo "  - Binary verification implemented"
 echo "  - Filesystem status checks improved"
+echo "  - Cleanup logic present"
 echo "  - Bash syntax valid"
 echo ""

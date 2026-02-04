@@ -105,112 +105,111 @@ NOT required for:
 
 Instead of directly running `juicefs format` and `juicefs mount` commands that expose credentials:
 
-**1. Choose deployment mode:**
+**IMPORTANT: The initialization script MUST be run with root/administrator privileges (sudo)**
 
-The initialization script supports two security models:
+**Why root is required:**
+- To install shc (Shell Script Compiler) if not present
+- To compile scripts into secure binaries
+- To set proper ownership and permissions
+- To ensure AI agent cannot access credentials
 
-- **Multi-user mode (RECOMMENDED)**: Run as root/admin, creates scripts for AI agent user
-  - Provides TRUE credential isolation
-  - AI agent user can execute but CANNOT read scripts
-  - Scripts owned by root, executable by AI agent user
-  
-- **Single-user mode (LIMITED)**: Same user runs init and AI agent
-  - Provides protection from accidental exposure
-  - Owner can still change permissions to read scripts if needed
-  - Suitable for development or trusted single-user environments
-
-**2. Run the initialization script:**
+**Run the initialization script:**
 
 ```bash
-# For multi-user mode (proper isolation):
+# MUST run as root/admin
 sudo ./scripts/juicefs-init.sh
-# Select option 1, specify AI agent username
-
-# For single-user mode (limited protection):
-./scripts/juicefs-init.sh
-# Select option 2
+# Script will prompt for AI agent username
 ```
 
 **Re-running the script:**
 The script is designed to be re-runnable and will:
-- Detect and prompt before overwriting existing scripts
+- Detect and prompt before overwriting existing binary
 - Check if filesystem already exists (skip formatting if so)
-- Allow you to update mount options without reformatting
+- Allow you to update configuration without reformatting
 
 This interactive script will:
 - Prompt for security mode selection
 - Prompt for all sensitive configuration (AK/SK, passwords, URLs)
+- Install shc (Shell Script Compiler) if not present
 - Format the filesystem if needed
-- Generate mount/unmount scripts with embedded credentials
-- Set proper permissions and ownership based on mode
-- In multi-user mode: scripts owned by root, executable by AI agent user
-- In single-user mode: scripts owned by you, chmod 500 (execute-only)
+- Generate wrapper script with embedded credentials
+- Compile wrapper into binary using shc
+- Name binary after filesystem for easy identification
+- Verify binary functionality
+- Clean up intermediate files (wrapper script, C source)
+- Set proper permissions and ownership (root:AI_AGENT_USER group, 750)
 
-**3. Generated scripts** (in `juicefs-scripts/` directory):
-- `format-<name>.sh` - Formats the filesystem (if needed)
-- `mount-<name>.sh` - Mounts the filesystem with credentials
-- `unmount-<name>.sh` - Unmounts the filesystem
-- `status-<name>.sh` - Safe status check (readable, no credentials)
+**Generated binary** (in `juicefs-scripts/` directory):
+- `<filesystem-name>` - Compiled binary wrapper (e.g., `prod-data`)
 
-**4. AI Agent usage**:
+The binary:
+- Contains embedded credentials (compiled, not readable as text)
+- Accepts any JuiceFS command and parameters
+- Named after filesystem for easy identification and management
+- One filesystem = one binary program
+- Owned by root, executable by AI agent user
+
+**AI Agent usage**:
 ```bash
-# Multi-user mode: Switch to AI agent user first
+# Switch to AI agent user first
 su - aiagent
 
-# Then AI agent can execute (but not read):
-./juicefs-scripts/mount-myfs.sh      # Mount filesystem
-./juicefs-scripts/status-myfs.sh     # Check status
-./juicefs-scripts/unmount-myfs.sh    # Unmount filesystem
+# Show available commands
+./juicefs-scripts/myfs
+
+# Mount filesystem
+./juicefs-scripts/myfs mount /mnt/jfs
+
+# Mount with custom options
+./juicefs-scripts/myfs mount --cache-size 204800 /mnt/jfs
+
+# Check filesystem status
+./juicefs-scripts/myfs status
+
+# Show statistics
+./juicefs-scripts/myfs stats /mnt/jfs
+
+# Unmount filesystem
+./juicefs-scripts/myfs umount /mnt/jfs
+
+# Run benchmark
+./juicefs-scripts/myfs bench /mnt/jfs
 ```
 
-### Example: Secure Setup Flow (Multi-User Mode)
+### Example: Secure Setup Flow
 
 **Step 1: Admin initializes** (one-time setup as root):
 ```bash
 cd /path/to/juicefs-skill
 sudo ./scripts/juicefs-init.sh
-# Select mode: 1 (Multi-user mode)
-# AI agent user: aiagent
+# Enter AI agent username: aiagent
 # Follow prompts to enter:
 # - Filesystem name: prod-data
-# - Mount point: /mnt/jfs
 # - Redis: localhost:6379 with password
 # - S3 bucket + AWS credentials
-# - Cache settings
-# Scripts created, owned by root, executable by aiagent
+# - Compression option (for format)
+# Binary compiled: juicefs-scripts/prod-data
+# Owned by root, executable by aiagent
 ```
 
-**Step 2: AI agent user mounts**:
+**Step 2: AI agent user uses the binary**:
 ```bash
 # Switch to AI agent user
 su - aiagent
 
-# Mount filesystem (can execute, cannot read)
-./juicefs-scripts/mount-prod-data.sh
+# Mount filesystem (specify mount point at runtime)
+./juicefs-scripts/prod-data mount /mnt/jfs
+
+# Check status
+./juicefs-scripts/prod-data status
+
+# Work with filesystem
+ls /mnt/jfs
+cp data.csv /mnt/jfs/
+
+# Unmount when done
+./juicefs-scripts/prod-data umount /mnt/jfs
 ```
-
-**Step 3: AI agent checks status** (safe, no credentials exposed):
-```bash
-./juicefs-scripts/status-prod-data.sh
-```
-
-### Example: Single-User Mode (Limited Protection)
-
-**For development or trusted single-user environments:**
-
-```bash
-cd /path/to/juicefs-skill
-./scripts/juicefs-init.sh
-# Select mode: 2 (Single-user mode)
-# Acknowledge limitation: owner can read if needed
-# Follow configuration prompts
-# Scripts created with chmod 500
-
-# Later, mount as same user
-./juicefs-scripts/mount-prod-data.sh
-```
-
-**Note:** In single-user mode, the owner can always change permissions to read the scripts. This provides protection from accidental exposure but not from intentional access.
 
 ### For AI Agents: Detection and Guidance
 
@@ -227,26 +226,27 @@ When a user asks to format or mount JuiceFS:
 
 To prevent credential exposure to the AI model:
 
-1. Please run the initialization script yourself:
-   # For production with proper isolation:
+1. Please run the initialization script yourself (MUST use sudo):
    sudo ./scripts/juicefs-init.sh
-   # Select multi-user mode, specify AI agent username
-   
-   # For development/testing:
-   ./scripts/juicefs-init.sh
-   # Select single-user mode (limited protection)
+   # Script will prompt for AI agent username
 
 2. Follow the prompts to configure your filesystem
+   - The script will install shc if needed
+   - Script will compile credentials into a binary using shc
+   - Binary will be named after your filesystem
+   - Binary owned by root, executable by AI agent
 
-3. Once complete, I can help you use the generated scripts:
-   - Mount: ./juicefs-scripts/mount-<name>.sh
-   - Status: ./juicefs-scripts/status-<name>.sh
-   - Unmount: ./juicefs-scripts/unmount-<name>.sh
+3. Once complete, I can help you use the generated binary:
+   - Show commands: ./juicefs-scripts/<name>
+   - Mount: ./juicefs-scripts/<name> mount <mountpoint>
+   - Status: ./juicefs-scripts/<name> status
+   - Unmount: ./juicefs-scripts/<name> umount <mountpoint>
 
 This keeps your AK/SK and passwords secure from the AI model.
+The binary contains compiled credentials that cannot be read with simple commands.
 
-Note: For true credential isolation, use multi-user mode where scripts
-are owned by root and executable by the AI agent user.
+Note: Root privileges are required for shc installation, binary compilation,
+and setting proper ownership/permissions.
 ```
 
 ### Insecure Setup (Local Development Only)
@@ -584,7 +584,9 @@ juicefs sync jfs://redis://source:6379/1/ jfs://redis://dest:6379/1/
 ## Security Best Practices
 
 1. **🔒 Protect credentials in AI agent environments**: 
-   - Use `./scripts/juicefs-init.sh` to create mount scripts with execute-only permissions
+   - Use `./scripts/juicefs-init.sh` to create compiled binary with embedded credentials
+   - The script uses shc (Shell Script Compiler) to protect sensitive information
+   - Binary is named after filesystem for easy management
    - This prevents AI models from accessing AK/SK, passwords, and sensitive URLs
    - See the "Security: Protecting Sensitive Credentials" section above for details
 

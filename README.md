@@ -151,39 +151,33 @@ For comprehensive details, see the [references directory](references/).
 
 ## 🔒 Security: Protecting Credentials
 
-When using JuiceFS with AI agents, sensitive credentials (AK/SK, passwords) should NOT be exposed to the AI model. This skill includes a secure initialization script with two deployment modes:
+When using JuiceFS with AI agents, sensitive credentials (AK/SK, passwords) should NOT be exposed to the AI model. This skill includes a secure initialization script that compiles credentials into binaries using shc (Shell Script Compiler):
 
 ### Using the Initialization Script
 
-**Multi-user mode (RECOMMENDED for production):**
+**IMPORTANT: This script MUST be run with root/administrator privileges (sudo)**
+
 ```bash
-# Run as root/admin to create scripts for AI agent user
+# Run as root/admin to create binary for AI agent user
 sudo ./scripts/juicefs-init.sh
-# Select option 1, specify AI agent username
+# Script will prompt for AI agent username
 ```
 
-**Single-user mode (for development):**
-```bash
-# Run as same user that will run AI agent
-./scripts/juicefs-init.sh
-# Select option 2
-```
+**Why root privileges are required:**
+- To install shc (Shell Script Compiler) if not present
+- To compile scripts into secure binaries
+- To set proper ownership (root) and permissions
+- To ensure AI agent user can execute but not read the binary
 
-### Security Models
+### Security Model
 
-**Multi-user mode** provides TRUE credential isolation:
-1. ✅ Run init script as root/admin
-2. ✅ Scripts owned by root, executable by AI agent user  
-3. ✅ AI agent user can execute but CANNOT read scripts
-4. ✅ True protection - AI agent cannot access credentials
-5. ✅ Proper user separation enforced by OS
-
-**Single-user mode** provides LIMITED protection:
-1. ⚠️ Same user runs init and AI agent
-2. ⚠️ Scripts owned by user, chmod 500 (execute-only)
-3. ⚠️ Owner can still change permissions if needed
-4. ⚠️ Protects from accidental exposure, not intentional access
-5. ✓ Suitable for development or trusted environments
+The initialization script provides strong credential isolation:
+1. ✅ Must run as root/admin - enforced by script
+2. ✅ Automatically installs shc if not present
+3. ✅ Binary owned by root, executable by AI agent user  
+4. ✅ AI agent user can execute but credentials are compiled into binary
+5. ✅ Strong protection - credentials obfuscated in binary format
+6. ✅ Proper user separation enforced by OS
 
 ### When to Use Secure Initialization
 
@@ -195,14 +189,31 @@ sudo ./scripts/juicefs-init.sh
 **Not required for:**
 - Local storage + SQLite3 (no credentials)
 
-### Generated Scripts
+### Generated Binary
 
 After initialization, you'll have:
-- `juicefs-scripts/mount-<name>.sh` - Mount filesystem (execute-only)
-- `juicefs-scripts/unmount-<name>.sh` - Unmount filesystem (execute-only)
-- `juicefs-scripts/status-<name>.sh` - Check status (readable, safe)
+- `juicefs-scripts/<filesystem-name>` - Compiled binary wrapper
 
-In multi-user mode, AI agent user can execute these scripts but cannot read them.
+The binary:
+- Is named after your filesystem for easy identification
+- Contains embedded credentials (compiled, not readable)
+- Accepts any JuiceFS command and parameters
+- Can be used by AI agents safely
+
+**Example usage:**
+```bash
+# Show help
+./juicefs-scripts/prod-data
+
+# Mount filesystem
+./juicefs-scripts/prod-data mount /mnt/jfs
+
+# Check status
+./juicefs-scripts/prod-data status
+
+# Unmount
+./juicefs-scripts/prod-data umount /mnt/jfs
+```
 
 See [SKILL.md](SKILL.md) for detailed security documentation.
 
