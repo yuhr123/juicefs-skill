@@ -59,7 +59,7 @@ This repository contains a comprehensive skill package for JuiceFS Community Edi
    - Troubleshooting
 
 2. **Multiple Access Patterns**
-   - In-depth reference (juicefs-skill.md)
+   - In-depth reference (COMPREHENSIVE_REFERENCE.md)
    - Quick task guide (QUICKSTART.md)
    - Topic index (TABLE_OF_CONTENTS.md)
    - Use-case navigation
@@ -126,14 +126,14 @@ This repository contains a comprehensive skill package for JuiceFS Community Edi
 3. Follow troubleshooting flowcharts
 
 ### For Detailed Information
-1. Reference juicefs-skill.md for comprehensive details
+1. Reference COMPREHENSIVE_REFERENCE.md for comprehensive details
 2. Look up specific sections using TABLE_OF_CONTENTS.md
 3. Review examples and best practices
 
 ### For Specific Tasks
 1. Search by use case in TABLE_OF_CONTENTS.md
 2. Follow step-by-step guides in QUICKSTART.md
-3. Validate with detailed options in juicefs-skill.md
+3. Validate with detailed options in COMPREHENSIVE_REFERENCE.md
 
 ## Quality Metrics
 

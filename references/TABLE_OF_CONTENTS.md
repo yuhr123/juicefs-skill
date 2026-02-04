@@ -55,7 +55,7 @@ Introduction to the skill repository:
 
 ### For AI Agents
 
-1. **Answering questions**: Reference `juicefs-skill.md` for detailed explanations
+1. **Answering questions**: Reference `COMPREHENSIVE_REFERENCE.md` for detailed explanations
 2. **Executing tasks**: Use `QUICKSTART.md` for command templates and patterns
 3. **Troubleshooting**: Check both files - QUICKSTART for common issues, main skill for deep dives
 4. **Configuration decisions**: Use decision trees in QUICKSTART, validate with detailed info in main skill
@@ -63,35 +63,35 @@ Introduction to the skill repository:
 ### Quick Access by Topic
 
 #### Architecture & Concepts
-- **File**: juicefs-skill.md
+- **File**: COMPREHENSIVE_REFERENCE.md
 - **Sections**: Overview, Architecture Components, Data Organization
 
 #### Getting Started
-- **File**: QUICKSTART.md or juicefs-skill.md (Installation section)
+- **File**: QUICKSTART.md or COMPREHENSIVE_REFERENCE.md (Installation section)
 - **Key content**: Prerequisites, installation methods, first mount
 
 #### Common Operations
-- **File**: QUICKSTART.md (for quick patterns) or juicefs-skill.md (for all options)
+- **File**: QUICKSTART.md (for quick patterns) or COMPREHENSIVE_REFERENCE.md (for all options)
 - **Topics**: Format, mount, sync, benchmark, status
 
 #### Integrations
-- **File**: juicefs-skill.md (detailed) + QUICKSTART.md (Kubernetes quick deploy)
+- **File**: COMPREHENSIVE_REFERENCE.md (detailed) + QUICKSTART.md (Kubernetes quick deploy)
 - **Topics**: Kubernetes, Hadoop, Docker
 
 #### Performance
-- **File**: juicefs-skill.md (Performance Optimization section) + QUICKSTART.md (decision trees)
+- **File**: COMPREHENSIVE_REFERENCE.md (Performance Optimization section) + QUICKSTART.md (decision trees)
 - **Topics**: Cache configuration, tuning options, mount options by workload
 
 #### Troubleshooting
-- **File**: QUICKSTART.md (flowcharts) + juicefs-skill.md (detailed solutions)
+- **File**: QUICKSTART.md (flowcharts) + COMPREHENSIVE_REFERENCE.md (detailed solutions)
 - **Topics**: Common issues, monitoring, debugging
 
 #### Security
-- **File**: juicefs-skill.md (Security Best Practices section)
+- **File**: COMPREHENSIVE_REFERENCE.md (Security Best Practices section)
 - **Topics**: Encryption, access control, network security, secrets management
 
 #### Advanced Topics
-- **File**: juicefs-skill.md
+- **File**: COMPREHENSIVE_REFERENCE.md
 - **Topics**: Trash management, quota, compression, HA setup
 
 ## Search by Use Case
@@ -99,112 +99,112 @@ Introduction to the skill repository:
 ### "I need to set up JuiceFS for the first time"
 1. Read: README.md (What is a Skill?)
 2. Follow: QUICKSTART.md → Task 1: Create and Mount a New File System
-3. Reference: juicefs-skill.md → Installation, Common Commands
+3. Reference: COMPREHENSIVE_REFERENCE.md → Installation, Common Commands
 
 ### "I need to optimize performance for ML training"
 1. Check: QUICKSTART.md → Decision Tree for mount options
 2. Read: QUICKSTART.md → Example 3: ML Training Setup
-3. Deep dive: juicefs-skill.md → Performance Optimization, Use Cases (ML Training)
+3. Deep dive: COMPREHENSIVE_REFERENCE.md → Performance Optimization, Use Cases (ML Training)
 
 ### "I need to deploy JuiceFS on Kubernetes"
 1. Quick start: QUICKSTART.md → Kubernetes Quick Deploy
-2. Detailed guide: juicefs-skill.md → Kubernetes Integration
+2. Detailed guide: COMPREHENSIVE_REFERENCE.md → Kubernetes Integration
 3. Reference: Official docs link in Resources section
 
 ### "I'm experiencing slow performance"
 1. Diagnose: QUICKSTART.md → Troubleshooting Flowchart (Slow performance)
-2. Solutions: juicefs-skill.md → Monitoring and Troubleshooting
-3. Optimize: juicefs-skill.md → Performance Optimization
+2. Solutions: COMPREHENSIVE_REFERENCE.md → Monitoring and Troubleshooting
+3. Optimize: COMPREHENSIVE_REFERENCE.md → Performance Optimization
 
 ### "I need to choose a metadata engine"
 1. Decision tree: QUICKSTART.md → "How do I choose a metadata engine?"
-2. Comparison: juicefs-skill.md → Metadata Engines Comparison
-3. Details: juicefs-skill.md → Architecture Components (Metadata Engine)
+2. Comparison: COMPREHENSIVE_REFERENCE.md → Metadata Engines Comparison
+3. Details: COMPREHENSIVE_REFERENCE.md → Architecture Components (Metadata Engine)
 
 ### "I want to compare JuiceFS with alternatives"
-1. Read: juicefs-skill.md → Comparison with Alternatives
-2. Use cases: juicefs-skill.md → Use Cases and Patterns
+1. Read: COMPREHENSIVE_REFERENCE.md → Comparison with Alternatives
+2. Use cases: COMPREHENSIVE_REFERENCE.md → Use Cases and Patterns
 
 ## Topic Index
 
 ### A
-- Architecture → juicefs-skill.md (Architecture Components)
-- Access Control → juicefs-skill.md (Security Best Practices)
-- Advanced Features → juicefs-skill.md (Advanced Features)
+- Architecture → COMPREHENSIVE_REFERENCE.md (Architecture Components)
+- Access Control → COMPREHENSIVE_REFERENCE.md (Security Best Practices)
+- Advanced Features → COMPREHENSIVE_REFERENCE.md (Advanced Features)
 
 ### B
-- Backup → juicefs-skill.md (Use Cases - Backup and Archival)
-- Benchmarking → juicefs-skill.md (Common Commands #5), QUICKSTART.md (Task 2)
-- Best Practices → juicefs-skill.md (Tips for AI Agents), QUICKSTART.md (Best Practices Checklist)
+- Backup → COMPREHENSIVE_REFERENCE.md (Use Cases - Backup and Archival)
+- Benchmarking → COMPREHENSIVE_REFERENCE.md (Common Commands #5), QUICKSTART.md (Task 2)
+- Best Practices → COMPREHENSIVE_REFERENCE.md (Tips for AI Agents), QUICKSTART.md (Best Practices Checklist)
 
 ### C
-- Cache Configuration → juicefs-skill.md (Performance Optimization), QUICKSTART.md (Decision Tree)
-- Commands Reference → juicefs-skill.md (Quick Reference Commands), QUICKSTART.md (Command Templates)
-- Compression → juicefs-skill.md (Advanced Features #4)
-- Configuration → juicefs-skill.md (Common Commands #10)
-- Containers → juicefs-skill.md (Docker Integration), QUICKSTART.md (Kubernetes Quick Deploy)
+- Cache Configuration → COMPREHENSIVE_REFERENCE.md (Performance Optimization), QUICKSTART.md (Decision Tree)
+- Commands Reference → COMPREHENSIVE_REFERENCE.md (Quick Reference Commands), QUICKSTART.md (Command Templates)
+- Compression → COMPREHENSIVE_REFERENCE.md (Advanced Features #4)
+- Configuration → COMPREHENSIVE_REFERENCE.md (Common Commands #10)
+- Containers → COMPREHENSIVE_REFERENCE.md (Docker Integration), QUICKSTART.md (Kubernetes Quick Deploy)
 
 ### D
-- Data Organization → juicefs-skill.md (Data Organization)
-- Docker → juicefs-skill.md (Docker Integration)
+- Data Organization → COMPREHENSIVE_REFERENCE.md (Data Organization)
+- Docker → COMPREHENSIVE_REFERENCE.md (Docker Integration)
 
 ### E
-- Encryption → juicefs-skill.md (Security Best Practices #1)
-- Environment Variables → juicefs-skill.md (Environment Variables), QUICKSTART.md (Environment Variables Reference)
+- Encryption → COMPREHENSIVE_REFERENCE.md (Security Best Practices #1)
+- Environment Variables → COMPREHENSIVE_REFERENCE.md (Environment Variables), QUICKSTART.md (Environment Variables Reference)
 
 ### F
-- Format → juicefs-skill.md (Common Commands #1), QUICKSTART.md (Task 1)
+- Format → COMPREHENSIVE_REFERENCE.md (Common Commands #1), QUICKSTART.md (Task 1)
 
 ### G
-- Garbage Collection → juicefs-skill.md (Common Commands #9)
-- Gateway Mode → juicefs-skill.md (Common Commands #7)
+- Garbage Collection → COMPREHENSIVE_REFERENCE.md (Common Commands #9)
+- Gateway Mode → COMPREHENSIVE_REFERENCE.md (Common Commands #7)
 
 ### H
-- Hadoop → juicefs-skill.md (Hadoop Integration)
-- High Availability → juicefs-skill.md (Common Workflows #4), QUICKSTART.md (Example 1)
+- Hadoop → COMPREHENSIVE_REFERENCE.md (Hadoop Integration)
+- High Availability → COMPREHENSIVE_REFERENCE.md (Common Workflows #4), QUICKSTART.md (Example 1)
 
 ### I
-- Installation → juicefs-skill.md (Installation)
-- Integration → juicefs-skill.md (Kubernetes, Hadoop, Docker Integration)
+- Installation → COMPREHENSIVE_REFERENCE.md (Installation)
+- Integration → COMPREHENSIVE_REFERENCE.md (Kubernetes, Hadoop, Docker Integration)
 
 ### K
-- Kubernetes → juicefs-skill.md (Kubernetes Integration), QUICKSTART.md (Kubernetes Quick Deploy)
+- Kubernetes → COMPREHENSIVE_REFERENCE.md (Kubernetes Integration), QUICKSTART.md (Kubernetes Quick Deploy)
 
 ### M
-- Machine Learning → juicefs-skill.md (Use Cases #2), QUICKSTART.md (Example 3)
-- Metadata Engines → juicefs-skill.md (Architecture, Metadata Engines Comparison)
-- Monitoring → juicefs-skill.md (Monitoring and Troubleshooting), QUICKSTART.md (Monitoring Commands)
-- Mount → juicefs-skill.md (Common Commands #2), QUICKSTART.md (Task 1, Mount options by workload)
+- Machine Learning → COMPREHENSIVE_REFERENCE.md (Use Cases #2), QUICKSTART.md (Example 3)
+- Metadata Engines → COMPREHENSIVE_REFERENCE.md (Architecture, Metadata Engines Comparison)
+- Monitoring → COMPREHENSIVE_REFERENCE.md (Monitoring and Troubleshooting), QUICKSTART.md (Monitoring Commands)
+- Mount → COMPREHENSIVE_REFERENCE.md (Common Commands #2), QUICKSTART.md (Task 1, Mount options by workload)
 
 ### O
-- Object Storage → juicefs-skill.md (Architecture, Supported Object Storage)
-- Optimization → juicefs-skill.md (Performance Optimization), QUICKSTART.md (Decision Trees)
+- Object Storage → COMPREHENSIVE_REFERENCE.md (Architecture, Supported Object Storage)
+- Optimization → COMPREHENSIVE_REFERENCE.md (Performance Optimization), QUICKSTART.md (Decision Trees)
 
 ### P
-- Performance → juicefs-skill.md (Performance Optimization), QUICKSTART.md (Troubleshooting)
-- POSIX Compatibility → juicefs-skill.md (Overview)
+- Performance → COMPREHENSIVE_REFERENCE.md (Performance Optimization), QUICKSTART.md (Troubleshooting)
+- POSIX Compatibility → COMPREHENSIVE_REFERENCE.md (Overview)
 
 ### Q
-- Quota Management → juicefs-skill.md (Advanced Features #2)
+- Quota Management → COMPREHENSIVE_REFERENCE.md (Advanced Features #2)
 - Quick Start → QUICKSTART.md
 
 ### R
-- Redis → juicefs-skill.md (Architecture, Metadata Engines)
+- Redis → COMPREHENSIVE_REFERENCE.md (Architecture, Metadata Engines)
 
 ### S
-- Security → juicefs-skill.md (Security Best Practices)
-- Sync → juicefs-skill.md (Common Commands #6), QUICKSTART.md (Task 3)
+- Security → COMPREHENSIVE_REFERENCE.md (Security Best Practices)
+- Sync → COMPREHENSIVE_REFERENCE.md (Common Commands #6), QUICKSTART.md (Task 3)
 
 ### T
-- Trash Management → juicefs-skill.md (Advanced Features #1)
-- Troubleshooting → juicefs-skill.md (Monitoring and Troubleshooting), QUICKSTART.md (Troubleshooting Flowchart)
+- Trash Management → COMPREHENSIVE_REFERENCE.md (Advanced Features #1)
+- Troubleshooting → COMPREHENSIVE_REFERENCE.md (Monitoring and Troubleshooting), QUICKSTART.md (Troubleshooting Flowchart)
 
 ### U
-- Unmount → juicefs-skill.md (Common Commands #3), QUICKSTART.md (Task 4)
-- Use Cases → juicefs-skill.md (Use Cases and Patterns)
+- Unmount → COMPREHENSIVE_REFERENCE.md (Common Commands #3), QUICKSTART.md (Task 4)
+- Use Cases → COMPREHENSIVE_REFERENCE.md (Use Cases and Patterns)
 
 ### W
-- Workflows → juicefs-skill.md (Common Workflows for AI Agents), QUICKSTART.md (Common Task Patterns)
+- Workflows → COMPREHENSIVE_REFERENCE.md (Common Workflows for AI Agents), QUICKSTART.md (Common Task Patterns)
 
 ## Version Information
 
@@ -215,7 +215,7 @@ Introduction to the skill repository:
 ## External Resources
 
 All external resource links are included in:
-- juicefs-skill.md → Resources and Documentation section
+- COMPREHENSIVE_REFERENCE.md → Resources and Documentation section
 - QUICKSTART.md → Quick Reference URLs section
 
 ## Contribution Guidelines
