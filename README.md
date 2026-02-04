@@ -23,6 +23,27 @@ juicefs-skill/
 
 ## Installation
 
+### Prerequisites
+
+**JuiceFS Client Must Be Installed**
+
+Before using this skill, install the JuiceFS client on the system where the AI agent runs:
+
+```bash
+# Standard installation (recommended)
+curl -sSL https://d.juicefs.com/install | sh -
+
+# Verify installation
+juicefs version
+```
+
+For multi-user environments or when using `sudo`, ensure JuiceFS is installed system-wide:
+```bash
+sudo install juicefs /usr/local/bin/
+```
+
+See [SKILL.md](SKILL.md) for detailed installation instructions and multi-user setup.
+
 ### For AI Agent Developers
 
 To integrate this skill into your AI agent:
@@ -121,11 +142,69 @@ The main skill instructions are in [`SKILL.md`](SKILL.md), which contains:
 
 - **YAML frontmatter**: Skill metadata (name, description, license, compatibility, metadata)
 - **Essential commands**: Format, mount, sync, status, configuration
+- **Security guidance**: Protecting credentials in AI agent environments
 - **Configuration patterns**: Optimized settings for different workloads
 - **Troubleshooting**: Common issues and solutions
 - **Quick reference**: Decision trees and performance tuning
 
 For comprehensive details, see the [references directory](references/).
+
+## 🔒 Security: Protecting Credentials
+
+When using JuiceFS with AI agents, sensitive credentials (AK/SK, passwords) should NOT be exposed to the AI model. This skill includes a secure initialization script with two deployment modes:
+
+### Using the Initialization Script
+
+**Multi-user mode (RECOMMENDED for production):**
+```bash
+# Run as root/admin to create scripts for AI agent user
+sudo ./scripts/juicefs-init.sh
+# Select option 1, specify AI agent username
+```
+
+**Single-user mode (for development):**
+```bash
+# Run as same user that will run AI agent
+./scripts/juicefs-init.sh
+# Select option 2
+```
+
+### Security Models
+
+**Multi-user mode** provides TRUE credential isolation:
+1. ✅ Run init script as root/admin
+2. ✅ Scripts owned by root, executable by AI agent user  
+3. ✅ AI agent user can execute but CANNOT read scripts
+4. ✅ True protection - AI agent cannot access credentials
+5. ✅ Proper user separation enforced by OS
+
+**Single-user mode** provides LIMITED protection:
+1. ⚠️ Same user runs init and AI agent
+2. ⚠️ Scripts owned by user, chmod 500 (execute-only)
+3. ⚠️ Owner can still change permissions if needed
+4. ⚠️ Protects from accidental exposure, not intentional access
+5. ✓ Suitable for development or trusted environments
+
+### When to Use Secure Initialization
+
+**Required for:**
+- Object storage with access keys (S3, OSS, Azure, GCS)
+- Databases with passwords (Redis, MySQL, PostgreSQL)
+- Any configuration with sensitive information
+
+**Not required for:**
+- Local storage + SQLite3 (no credentials)
+
+### Generated Scripts
+
+After initialization, you'll have:
+- `juicefs-scripts/mount-<name>.sh` - Mount filesystem (execute-only)
+- `juicefs-scripts/unmount-<name>.sh` - Unmount filesystem (execute-only)
+- `juicefs-scripts/status-<name>.sh` - Check status (readable, safe)
+
+In multi-user mode, AI agent user can execute these scripts but cannot read them.
+
+See [SKILL.md](SKILL.md) for detailed security documentation.
 
 ## Skill Coverage
 
@@ -134,6 +213,7 @@ For comprehensive details, see the [references directory](references/).
 - Installation and setup procedures
 - All JuiceFS commands with examples
 - Kubernetes, Hadoop, and Docker integration
+- **🔒 Secure credential handling for AI agents**
 
 ### Performance & Optimization
 - Cache configuration strategies
@@ -143,7 +223,7 @@ For comprehensive details, see the [references directory](references/).
 
 ### Operations
 - Monitoring and troubleshooting
-- Security best practices (encryption, access control)
+- **Security best practices (credential protection, encryption, access control)**
 - Maintenance tasks (garbage collection, backups)
 - Data migration patterns
 

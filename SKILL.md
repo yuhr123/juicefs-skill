@@ -11,6 +11,36 @@ metadata:
 
 # JuiceFS Skill
 
+## Prerequisites
+
+**JuiceFS Client Installation**
+
+The initialization script can install JuiceFS automatically if needed.
+
+### Standard Installation (Recommended)
+```bash
+curl -sSL https://d.juicefs.com/install | sh -
+```
+This installs to `/usr/local/bin/juicefs` (accessible system-wide).
+
+### Manual Installation
+```bash
+wget https://github.com/juicedata/juicefs/releases/latest/download/juicefs-linux-amd64.tar.gz
+tar -zxf juicefs-linux-amd64.tar.gz
+sudo install juicefs /usr/local/bin/
+```
+
+### Verify Installation
+```bash
+juicefs version
+```
+
+### Using the Initialization Script
+The initialization script will:
+- Check if JuiceFS is in your PATH
+- Offer to install it automatically if not found
+- Guide you through the process
+
 ## Overview
 
 JuiceFS is a high-performance POSIX file system designed for cloud-native environments. It separates data and metadata storage:
@@ -55,6 +85,183 @@ Use this skill when:
 - **TiKV**: Excellent for large-scale distributed deployments
 - **SQLite**: Simple, single-node, good for testing/development
 - **etcd**: Small to medium scale
+
+## 🔒 Security: Protecting Sensitive Credentials
+
+**IMPORTANT FOR AI AGENTS**: When working with JuiceFS in AI agent environments, credentials (AK/SK, passwords) should NOT be exposed to the AI model to prevent data leakage.
+
+### When Credential Protection is Required
+
+Use the secure initialization approach when using:
+- ✅ Object storage with access keys (S3, OSS, Azure Blob, GCS, etc.)
+- ✅ Databases with passwords (Redis, MySQL, PostgreSQL with auth)
+- ✅ Any configuration containing sensitive information
+
+NOT required for:
+- ❌ Local storage (`--storage file`) + SQLite3 (no password)
+- ❌ Unauthenticated metadata engines
+
+### Secure Initialization Process
+
+Instead of directly running `juicefs format` and `juicefs mount` commands that expose credentials:
+
+**1. Choose deployment mode:**
+
+The initialization script supports two security models:
+
+- **Multi-user mode (RECOMMENDED)**: Run as root/admin, creates scripts for AI agent user
+  - Provides TRUE credential isolation
+  - AI agent user can execute but CANNOT read scripts
+  - Scripts owned by root, executable by AI agent user
+  
+- **Single-user mode (LIMITED)**: Same user runs init and AI agent
+  - Provides protection from accidental exposure
+  - Owner can still change permissions to read scripts if needed
+  - Suitable for development or trusted single-user environments
+
+**2. Run the initialization script:**
+
+```bash
+# For multi-user mode (proper isolation):
+sudo ./scripts/juicefs-init.sh
+# Select option 1, specify AI agent username
+
+# For single-user mode (limited protection):
+./scripts/juicefs-init.sh
+# Select option 2
+```
+
+**Re-running the script:**
+The script is designed to be re-runnable and will:
+- Detect and prompt before overwriting existing scripts
+- Check if filesystem already exists (skip formatting if so)
+- Allow you to update mount options without reformatting
+
+This interactive script will:
+- Prompt for security mode selection
+- Prompt for all sensitive configuration (AK/SK, passwords, URLs)
+- Format the filesystem if needed
+- Generate mount/unmount scripts with embedded credentials
+- Set proper permissions and ownership based on mode
+- In multi-user mode: scripts owned by root, executable by AI agent user
+- In single-user mode: scripts owned by you, chmod 500 (execute-only)
+
+**3. Generated scripts** (in `juicefs-scripts/` directory):
+- `format-<name>.sh` - Formats the filesystem (if needed)
+- `mount-<name>.sh` - Mounts the filesystem with credentials
+- `unmount-<name>.sh` - Unmounts the filesystem
+- `status-<name>.sh` - Safe status check (readable, no credentials)
+
+**4. AI Agent usage**:
+```bash
+# Multi-user mode: Switch to AI agent user first
+su - aiagent
+
+# Then AI agent can execute (but not read):
+./juicefs-scripts/mount-myfs.sh      # Mount filesystem
+./juicefs-scripts/status-myfs.sh     # Check status
+./juicefs-scripts/unmount-myfs.sh    # Unmount filesystem
+```
+
+### Example: Secure Setup Flow (Multi-User Mode)
+
+**Step 1: Admin initializes** (one-time setup as root):
+```bash
+cd /path/to/juicefs-skill
+sudo ./scripts/juicefs-init.sh
+# Select mode: 1 (Multi-user mode)
+# AI agent user: aiagent
+# Follow prompts to enter:
+# - Filesystem name: prod-data
+# - Mount point: /mnt/jfs
+# - Redis: localhost:6379 with password
+# - S3 bucket + AWS credentials
+# - Cache settings
+# Scripts created, owned by root, executable by aiagent
+```
+
+**Step 2: AI agent user mounts**:
+```bash
+# Switch to AI agent user
+su - aiagent
+
+# Mount filesystem (can execute, cannot read)
+./juicefs-scripts/mount-prod-data.sh
+```
+
+**Step 3: AI agent checks status** (safe, no credentials exposed):
+```bash
+./juicefs-scripts/status-prod-data.sh
+```
+
+### Example: Single-User Mode (Limited Protection)
+
+**For development or trusted single-user environments:**
+
+```bash
+cd /path/to/juicefs-skill
+./scripts/juicefs-init.sh
+# Select mode: 2 (Single-user mode)
+# Acknowledge limitation: owner can read if needed
+# Follow configuration prompts
+# Scripts created with chmod 500
+
+# Later, mount as same user
+./juicefs-scripts/mount-prod-data.sh
+```
+
+**Note:** In single-user mode, the owner can always change permissions to read the scripts. This provides protection from accidental exposure but not from intentional access.
+
+### For AI Agents: Detection and Guidance
+
+When a user asks to format or mount JuiceFS:
+
+**Check if using sensitive resources:**
+```bash
+# User mentions: S3, OSS, Azure, GCS, Redis password, MySQL password, etc.
+```
+
+**Provide guidance:**
+```
+⚠️  SECURITY WARNING: This operation requires sensitive credentials.
+
+To prevent credential exposure to the AI model:
+
+1. Please run the initialization script yourself:
+   # For production with proper isolation:
+   sudo ./scripts/juicefs-init.sh
+   # Select multi-user mode, specify AI agent username
+   
+   # For development/testing:
+   ./scripts/juicefs-init.sh
+   # Select single-user mode (limited protection)
+
+2. Follow the prompts to configure your filesystem
+
+3. Once complete, I can help you use the generated scripts:
+   - Mount: ./juicefs-scripts/mount-<name>.sh
+   - Status: ./juicefs-scripts/status-<name>.sh
+   - Unmount: ./juicefs-scripts/unmount-<name>.sh
+
+This keeps your AK/SK and passwords secure from the AI model.
+
+Note: For true credential isolation, use multi-user mode where scripts
+are owned by root and executable by the AI agent user.
+```
+
+### Insecure Setup (Local Development Only)
+
+For local development without sensitive data:
+```bash
+# This is safe for AI agents - no credentials involved
+juicefs format \
+    --storage file \
+    --bucket /tmp/jfs-storage \
+    sqlite3:///tmp/jfs.db \
+    dev-fs
+
+juicefs mount sqlite3:///tmp/jfs.db /mnt/jfs-dev
+```
 
 ## Essential Commands
 
@@ -376,35 +583,44 @@ juicefs sync jfs://redis://source:6379/1/ jfs://redis://dest:6379/1/
 
 ## Security Best Practices
 
-1. **Enable encryption**:
+1. **🔒 Protect credentials in AI agent environments**: 
+   - Use `./scripts/juicefs-init.sh` to create mount scripts with execute-only permissions
+   - This prevents AI models from accessing AK/SK, passwords, and sensitive URLs
+   - See the "Security: Protecting Sensitive Credentials" section above for details
+
+2. **Enable encryption**:
    ```bash
    juicefs format --encrypt-secret redis://localhost:6379/1 secure-fs
    ```
 
-2. **Use TLS for metadata engine**: Connect via `rediss://` instead of `redis://`
+3. **Use TLS for metadata engine**: Connect via `rediss://` instead of `redis://`
 
-3. **Use HTTPS for object storage**: Always use HTTPS endpoints
+4. **Use HTTPS for object storage**: Always use HTTPS endpoints
 
-4. **IAM roles**: Use IAM roles instead of access keys when possible
+5. **IAM roles**: Use IAM roles instead of access keys when possible
 
-5. **Network isolation**: Use VPC/private networks for production
+6. **Network isolation**: Use VPC/private networks for production
 
 ## Environment Variables
 
+⚠️  **WARNING for AI Agents**: Setting these environment variables exposes credentials to the AI model. Use the secure initialization script instead (see Security section above).
+
 ```bash
-# AWS credentials
+# AWS credentials (⚠️  Contains sensitive data)
 export AWS_ACCESS_KEY_ID=your-key
 export AWS_SECRET_ACCESS_KEY=your-secret
 
-# Redis password
+# Redis password (⚠️  Contains sensitive data)
 export REDIS_PASSWORD=your-password
 
-# Custom cache
+# Custom cache (✓ Safe)
 export JUICEFS_CACHE_DIR=/ssd/cache
 
-# Debug logging
+# Debug logging (✓ Safe)
 export JUICEFS_LOGLEVEL=debug
 ```
+
+**Recommended approach**: Use the initialization script which embeds these in execute-only scripts.
 
 ## Quick Decision Trees
 

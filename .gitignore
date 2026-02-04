@@ -1,0 +1,15 @@
+# Generated JuiceFS scripts with embedded credentials
+# These should NOT be committed as they contain sensitive information
+juicefs-scripts/
+*.sh.bak
+
+# User-generated configuration
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache and temporary files
+.juicefs/
+__pycache__/
+*.pyc
+.DS_Store
