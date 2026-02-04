@@ -112,11 +112,12 @@ set_secure_permissions() {
         
         if [[ "$MULTIUSER_MODE" == "true" ]]; then
             # Multi-user mode: change ownership to root, set group to AI agent user's group
-            # AI agent user can execute via group permissions
+            # AI agent user can execute via group permissions ONLY (no read!)
             AI_AGENT_GROUP=$(id -gn "$AI_AGENT_USER")
             chown root:"$AI_AGENT_GROUP" "$script_path"
-            chmod 550 "$script_path"  # Owner (root) read+execute, group (AI agent) execute-only
+            chmod 510 "$script_path"  # Owner (root) read+execute, group (AI agent) execute-only, others none
             echo "✓ Script owned by root, executable by $AI_AGENT_USER (group $AI_AGENT_GROUP)"
+            echo "   Permissions: 510 (owner r-x, group --x only)"
         else
             # Single-user mode: owner only
             echo "✓ Script set to execute-only (chmod 500)"
@@ -272,7 +273,6 @@ SCRIPTS_DIR="$(pwd)/juicefs-scripts"
 MOUNT_SCRIPT="${SCRIPTS_DIR}/mount-${FS_NAME}.sh"
 UNMOUNT_SCRIPT="${SCRIPTS_DIR}/unmount-${FS_NAME}.sh"
 STATUS_SCRIPT="${SCRIPTS_DIR}/status-${FS_NAME}.sh"
-FORMAT_SCRIPT="${SCRIPTS_DIR}/format-${FS_NAME}.sh"
 
 EXISTING_SCRIPTS=()
 if [ -f "$MOUNT_SCRIPT" ]; then
@@ -283,9 +283,6 @@ if [ -f "$UNMOUNT_SCRIPT" ]; then
 fi
 if [ -f "$STATUS_SCRIPT" ]; then
     EXISTING_SCRIPTS+=("status-${FS_NAME}.sh")
-fi
-if [ -f "$FORMAT_SCRIPT" ]; then
-    EXISTING_SCRIPTS+=("format-${FS_NAME}.sh")
 fi
 
 if [ ${#EXISTING_SCRIPTS[@]} -gt 0 ]; then
@@ -444,54 +441,30 @@ fi
 # Create scripts directory
 mkdir -p "$SCRIPTS_DIR"
 
-# Generate format script if needed
+# Format filesystem if needed (inline, not as a persistent script)
 if [ "$SKIP_FORMAT" = false ]; then
     echo ""
-    echo "Creating format script: $FORMAT_SCRIPT"
+    echo "Formatting JuiceFS filesystem..."
+    echo ""
     
-    cat > "$FORMAT_SCRIPT" << EOF
-#!/bin/bash
-# JuiceFS Format Script for: $FS_NAME
-# Auto-generated on $(date)
-# DO NOT EDIT MANUALLY
-
-set -e
-
-EOF
-
+    # Set environment variables if needed
     if [ "$USE_ENV_VARS" = true ] && [ -n "$AWS_ACCESS_KEY" ]; then
-        cat >> "$FORMAT_SCRIPT" << EOF
-export AWS_ACCESS_KEY_ID='$AWS_ACCESS_KEY'
-export AWS_SECRET_ACCESS_KEY='$AWS_SECRET_KEY'
-
-EOF
+        export AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY"
+        export AWS_SECRET_ACCESS_KEY="$AWS_SECRET_KEY"
     fi
-
-    cat >> "$FORMAT_SCRIPT" << EOF
-# JuiceFS binary path
-JUICEFS="$JUICEFS_BIN"
-
-\$JUICEFS format \\
-    --storage $STORAGE_TYPE \\
-    --bucket '$STORAGE_BUCKET' \\
-    $COMPRESS_OPT \\
-    '$META_URL' \\
-    $FS_NAME
-
-echo "✓ Filesystem formatted successfully"
-EOF
-
-    set_secure_permissions "$FORMAT_SCRIPT" "true"
+    
+    # Run format command
+    $JUICEFS_BIN format \
+        --storage $STORAGE_TYPE \
+        --bucket "$STORAGE_BUCKET" \
+        $COMPRESS_OPT \
+        "$META_URL" \
+        $FS_NAME
     
     echo ""
-    echo "Running format script..."
-    
-    if [[ "$MULTIUSER_MODE" == "true" ]]; then
-        # In multi-user mode, run as the AI agent user
-        sudo -u "$AI_AGENT_USER" "$FORMAT_SCRIPT"
-    else
-        "$FORMAT_SCRIPT"
-    fi
+    echo "✓ Filesystem formatted successfully"
+    echo ""
+    echo "ℹ️  Note: Format only needs to be done once. No format script was generated."
 fi
 
 # Generate mount script

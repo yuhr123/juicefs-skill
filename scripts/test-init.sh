@@ -81,7 +81,6 @@ GENERATED_SCRIPTS=(
     "mount-"
     "unmount-"
     "status-"
-    "format-"
 )
 
 for script_type in "${GENERATED_SCRIPTS[@]}"; do
@@ -90,7 +89,14 @@ for script_type in "${GENERATED_SCRIPTS[@]}"; do
         exit 1
     fi
 done
-echo "✓ PASS: Script generation logic present"
+
+# Check that format is done inline, not as a script
+if grep -q "Creating format script" "$INIT_SCRIPT"; then
+    echo "❌ FAIL: Format script should not be generated (format should be inline)"
+    exit 1
+fi
+
+echo "✓ PASS: Script generation logic present (mount, unmount, status only)"
 echo ""
 
 # Test 6: Check for metadata engine options

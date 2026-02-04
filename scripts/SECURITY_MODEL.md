@@ -26,13 +26,13 @@ When the same user owns a file and sets `chmod 500`:
 3. Scripts are created with:
    - Owner: `root`
    - Group: AI agent user's primary group
-   - Permissions: `550` (owner: read+execute, group: execute-only)
+   - Permissions: `510` (owner: read+execute, group: execute-only, others: none)
 
 **Security Properties:**
-- ✅ AI agent user can execute scripts (via group permissions)
+- ✅ AI agent user can execute scripts (via group execute permission)
 - ✅ AI agent user CANNOT read scripts (no read permission for group)
 - ✅ True isolation enforced by the operating system
-- ✅ Even if AI agent tries `cat`, `less`, etc., OS denies access
+- ✅ Even if AI agent tries `cat`, `less`, `echo`, etc., OS denies access
 - ✅ Root owns the files, AI agent user cannot change permissions
 
 **Example:**
@@ -102,10 +102,10 @@ set_secure_permissions() {
     
     if [[ "$is_sensitive" == "true" ]]; then
         if [[ "$MULTIUSER_MODE" == "true" ]]; then
-            # Multi-user: root owns, group executes
+            # Multi-user: root owns, group executes only (no read)
             AI_AGENT_GROUP=$(id -gn "$AI_AGENT_USER")
             chown root:"$AI_AGENT_GROUP" "$script_path"
-            chmod 550 "$script_path"
+            chmod 510 "$script_path"
         else
             # Single-user: owner execute-only
             chmod 500 "$script_path"

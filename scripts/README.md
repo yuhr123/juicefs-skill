@@ -61,24 +61,26 @@ Follow the interactive prompts to configure:
 
 The initialization script creates a `juicefs-scripts/` directory with:
 
-- **`format-<name>.sh`** - Formats the filesystem (only created if needed)
-  - Permissions: 500 (execute-only)
-  - Contains: Storage credentials and metadata connection
-  - Not created if filesystem already exists
-  
 - **`mount-<name>.sh`** - Mounts the filesystem
-  - Permissions: 500 (execute-only)
+  - Multi-user mode: Permissions 510 (owner r-x, group --x only, others none)
+  - Single-user mode: Permissions 500 (owner r-x only)
   - Contains: All credentials and mount options
   - Checks if already mounted before attempting mount
+  - **AI agent user can execute but CANNOT read the contents**
   
 - **`unmount-<name>.sh`** - Unmounts the filesystem
-  - Permissions: 500 (execute-only)
+  - Multi-user mode: Permissions 510 (owner r-x, group --x only, others none)
+  - Single-user mode: Permissions 500 (owner r-x only)
   - Contains: Mount point information
   - Checks if mounted before attempting unmount
+  - **AI agent user can execute but CANNOT read the contents**
   
 - **`status-<name>.sh`** - Checks filesystem status
-  - Permissions: 755 (readable)
+  - Permissions: 755 (readable by all)
   - Safe for AI agents - no credentials
+  - Can be read and executed by anyone
+
+**Note:** No format script is generated. Format is performed once during initialization and doesn't need to be repeated.
 
 ### 3. Using Generated Scripts
 
