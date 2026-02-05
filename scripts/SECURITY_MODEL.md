@@ -84,7 +84,7 @@ chown root:<ai-agent-group> juicefs-scripts/<filesystem-name>
 
 **Key Benefits:**
 - AI agent can execute via group membership
-- Cannot read source (compiled binary)
+- Cannot read credentials directly from binary (compiled, not plaintext)
 - Cannot modify permissions (not owner)
 - Credentials embedded in binary format (obfuscated)
 
