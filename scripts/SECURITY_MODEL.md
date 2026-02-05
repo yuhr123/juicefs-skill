@@ -23,7 +23,7 @@ This enforces true OS-level isolation where the AI agent can execute operations 
 4. Binary is created with:
    - Owner: `root`
    - Group: AI agent user's primary group
-   - Permissions: `750` (owner: read+execute, group: execute, others: none)
+   - Permissions: `750` (owner: read+write+execute, group: read+execute, others: none)
 
 **Security Properties:**
 - ✅ AI agent user can execute the binary (via group execute permission)
