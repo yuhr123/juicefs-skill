@@ -1,195 +1,164 @@
 #!/bin/bash
 
-# Demo of Security Model - Both Modes
-# This script demonstrates the difference between multi-user and single-user modes
+# Demo of Security Model
+# This script demonstrates the security model for JuiceFS in AI agent environments
 
 echo "=========================================="
-echo "  JuiceFS Security Model Comparison"
+echo "  JuiceFS Security Model for AI Agents"
 echo "=========================================="
 echo ""
 
 cat << 'EOF'
 
-## The Problem (Original Implementation)
+## Security Model Overview
 
-Same user owns scripts with chmod 500:
-
-┌─────────────────────────────────────────┐
-│ User: alice                             │
-│ Script: mount.sh                        │
-│ Permissions: -r-x------ alice alice     │
-└─────────────────────────────────────────┘
-
-Can alice execute? ✓ Yes
-Can alice read?    ✗ No (chmod 500)
-
-BUT alice can:
-  $ chmod 600 mount.sh
-  $ cat mount.sh
-  ✓ Now can read!
-
-This is "掩耳盗铃" (self-deception)
-
-
-## Solution: Two Modes
+This SKILL provides secure access guidance for AI Agents working with JuiceFS.
+The security model ensures maximum isolation between AI agents and sensitive credentials.
 
 ┌─────────────────────────────────────────────────────────────┐
-│ MODE 1: Multi-User (TRUE ISOLATION)                        │
+│ Root Initialization with Non-Root Agent Execution           │
 └─────────────────────────────────────────────────────────────┘
 
-Run as: root
-Setup:
+Setup Process:
   $ sudo ./scripts/juicefs-init.sh
-  # Select: 1 (Multi-user mode)
   # AI agent user: aiagent
+  # Follow prompts to configure filesystem
 
-Generated scripts:
-  -r-xr-x--- root aiagent mount.sh
+Generated Binary:
+  -rwxr-x--- root aiagent juicefs-scripts/prod-data
 
-AI agent user (aiagent):
-  $ ./mount.sh              ✓ Can execute (group permission)
-  $ cat mount.sh            ✗ Permission denied (no read for group)
-  $ chmod 600 mount.sh      ✗ Cannot change (not owner)
-  $ strings mount.sh        ✗ Permission denied
-  $ vi mount.sh             ✗ Permission denied
+Security Properties:
+  ✓ Binary owned by root
+  ✓ Executable by AI agent (via group permission)
+  ✓ Credentials compiled in binary format (obfuscated by shc)
+  ✓ AI agent cannot easily read credentials
+  ✓ True OS-level isolation
+
+AI Agent Usage:
+  $ ./juicefs-scripts/prod-data mount /mnt/jfs    ✓ Can execute
+  $ cat ./juicefs-scripts/prod-data               ✓ Binary format (not plaintext)
+  $ strings ./juicefs-scripts/prod-data | grep SK ⚠️ Obfuscated by shc
+  $ chmod 600 ./juicefs-scripts/prod-data         ✗ Cannot change (not owner)
 
 TRUE PROTECTION ✓
 
 
-┌─────────────────────────────────────────────────────────────┐
-│ MODE 2: Single-User (LIMITED PROTECTION)                    │
-└─────────────────────────────────────────────────────────────┘
+## Key Security Features
 
-Run as: same user as AI agent
-Setup:
-  $ ./scripts/juicefs-init.sh
-  # Select: 2 (Single-user mode)
+1. **Root-Based Initialization**
+   - Admin runs with sudo
+   - Ensures proper separation between root and AI agent
 
-Generated scripts:
-  -r-x------ alice alice mount.sh
+2. **Binary Compilation with shc**
+   - Uses shc (Shell Script Compiler)
+   - Credentials embedded in compiled format
+   - Obfuscates sensitive information
 
-Same user (alice):
-  $ ./mount.sh              ✓ Can execute
-  $ cat mount.sh            ✗ Permission denied (chmod 500)
-  $ chmod 600 mount.sh      ✓ Can change (owner)
-  $ cat mount.sh            ✓ Can now read (limitation)
+3. **OS-Level Permissions**
+   - Binary owned by root
+   - Group execute permission for AI agent
+   - AI agent cannot modify or easily read
 
-LIMITED PROTECTION ⚠️
-
-
-## Comparison Table
-
-┌──────────────────┬─────────────────┬──────────────────┐
-│ Capability       │ Multi-User Mode │ Single-User Mode │
-├──────────────────┼─────────────────┼──────────────────┤
-│ Execute script   │ ✓ Yes           │ ✓ Yes            │
-│ Read script      │ ✗ No (enforced) │ ⚠️ No (advisory)  │
-│ Modify script    │ ✗ No            │ ⚠️ Can bypass     │
-│ Change perms     │ ✗ No            │ ✓ Yes (owner)    │
-│ True isolation   │ ✓ Yes           │ ✗ No             │
-│ Use case         │ Production      │ Development      │
-│ Requires         │ sudo            │ Regular user     │
-└──────────────────┴─────────────────┴──────────────────┘
+4. **Defense in Depth**
+   - File permissions
+   - Binary obfuscation
+   - User separation
+   - Process isolation
 
 
-## When to Use Each Mode
+## Usage Example
 
-Multi-User Mode (RECOMMENDED):
-  ✓ Production deployments
-  ✓ Shared servers
-  ✓ Need true credential isolation
-  ✓ AI agent runs as dedicated user
-  ✓ Security is critical
-
-Single-User Mode (LIMITED):
-  ✓ Development/testing
-  ✓ Single-user workstation
-  ✓ Trusted environment
-  ✓ Quick prototyping
-  ⚠️ Understand limitations
-
-
-## Example Setup
-
-Multi-User Production:
+Admin Setup:
   # Create AI agent user
   $ sudo useradd -m aiagent
   
-  # Initialize as root
+  # Initialize filesystem
   $ sudo ./scripts/juicefs-init.sh
-  Select: 1 (Multi-user mode)
   AI agent user: aiagent
+  Filesystem: prod-data
+  # ...configure credentials...
   
-  # Run AI agent as that user
+  # Binary created: juicefs-scripts/prod-data
+  # Owned by root, executable by aiagent
+
+AI Agent Usage:
+  # Switch to AI agent user
   $ sudo -u aiagent /path/to/ai-agent
-
-Single-User Development:
-  # Initialize as yourself
-  $ ./scripts/juicefs-init.sh
-  Select: 2 (Single-user mode)
-  Acknowledge limitations
   
-  # Run AI agent in same session
-  $ /path/to/ai-agent
-
-
-## Security Properties
-
-Multi-User:
-  - Script owner: root
-  - AI agent user: Different user (e.g., aiagent)
-  - OS enforces permission boundaries
-  - Cannot read even with chmod attempts
-  - True isolation ✓
-
-Single-User:
-  - Script owner: Same as AI agent user
-  - Permission: 500 (execute-only)
-  - Advisory protection only
-  - Can bypass with chmod if needed
-  - Limited protection ⚠️
-
-
-## The Fix for "掩耳盗铃" (Self-Deception)
-
-Original problem:
-  "Only the same user creates and runs scripts"
-  → Can always read own files
-  → Self-deception
-
-Solution:
-  1. Multi-user mode: Different user (root) creates scripts
-     → AI agent user CANNOT read
-     → TRUE isolation
+  # Mount filesystem
+  $ ./juicefs-scripts/prod-data mount /mnt/jfs
+  ✓ Mounted successfully
   
-  2. Single-user mode: Honestly document limitations
-     → No false claims
-     → User makes informed choice
+  # Cannot access credentials
+  # (compiled in binary format)
 
 
-## Recommendation
+## Advanced Security Options
 
-For any production use where credentials must be protected:
-  → Use Multi-User Mode
+For maximum security in production:
 
-For development where convenience matters more:
-  → Single-User Mode is acceptable
-  → But understand the limitations
+1. **Secret Management Services**
+   - AWS Secrets Manager
+   - HashiCorp Vault
+   - Azure Key Vault
+
+2. **IAM-Based Authentication**
+   - AWS IAM roles
+   - Azure Managed Identity
+   - GCP Workload Identity
+
+3. **Certificate-Based Auth**
+   - TLS client certificates
+   - No passwords to protect
+
+4. **Configuration Encryption**
+   - age (modern encryption)
+   - SOPS (Secrets OPerationS)
+
+See SECURITY_MODEL.md for detailed advanced recommendations.
+
+
+## Limitations
+
+Current Implementation:
+  - Process tracing can see credentials in memory (requires ptrace)
+  - Binary decompilation possible (though obfuscated)
+  - Root can always access any file/process
+
+Mitigation:
+  - Use SELinux/AppArmor to restrict ptrace
+  - Run in containers with minimal capabilities
+  - Consider secret management services for maximum security
+
+
+## Responsibility Boundary
+
+SKILL Provides:
+  ✓ Security guidance for AI agent environments
+  ✓ Secure initialization process
+  ✓ Binary compilation with shc
+  ✓ Best practices for credential isolation
+
+SKILL Does NOT Handle:
+  ✗ How AI agents are deployed
+  ✗ How AI agents are run/managed
+  ✗ Host system security configuration
+  ✗ Network security setup
+
+Collaboration Model:
+  - Admin: Runs initialization with sudo
+  - AI Agent: Executes binaries, works with filesystems
+  - SKILL: Provides guidance and tools
 
 EOF
 
 echo ""
 echo "=========================================="
-echo "  Implementation Available"
+echo "  Try It Yourself"
 echo "=========================================="
 echo ""
-echo "Try it yourself:"
-echo ""
-echo "Multi-user mode:"
+echo "Run the initialization script:"
 echo "  sudo ./scripts/juicefs-init.sh"
 echo ""
-echo "Single-user mode:"
-echo "  ./scripts/juicefs-init.sh"
-echo ""
-echo "See scripts/SECURITY_MODEL.md for detailed documentation"
+echo "See SECURITY_MODEL.md for detailed documentation"
 echo ""

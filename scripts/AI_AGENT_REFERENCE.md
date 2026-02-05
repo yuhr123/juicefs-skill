@@ -48,26 +48,25 @@ If you prefer to install manually:
 
 To prevent credential exposure to me (the AI agent), please:
 
-1. Run the initialization script:
+1. Run the initialization script with root privileges:
    
-   For production (proper isolation):
-     sudo ./scripts/juicefs-init.sh
-     # Select option 1 (Multi-user mode)
-     # Specify the username I run as
+   sudo ./scripts/juicefs-init.sh
    
-   For development (limited protection):
-     ./scripts/juicefs-init.sh
-     # Select option 2 (Single-user mode)
+   (Root is required to install shc, compile binaries, and set proper permissions)
 
 2. Follow the prompts to configure your filesystem
+   - The script will install shc (Shell Script Compiler) if needed
+   - Script will compile credentials into a binary
+   - Binary will be named after your filesystem
+   - Binary owned by root, executable by AI agent
 
-3. After setup, tell me, and I can use the generated scripts:
-   - Mount: ./juicefs-scripts/mount-<name>.sh
-   - Status: ./juicefs-scripts/status-<name>.sh
-   - Unmount: ./juicefs-scripts/unmount-<name>.sh
+3. Once complete, I can help you use the generated binary:
+   - Mount: ./juicefs-scripts/<name> mount <mountpoint>
+   - Status: ./juicefs-scripts/<name> status
+   - Unmount: ./juicefs-scripts/<name> umount <mountpoint>
 
-Multi-user mode provides TRUE isolation where I cannot read scripts.
-Single-user mode provides protection from accidental exposure only.
+This keeps your AK/SK and passwords secure from the AI model.
+The binary contains compiled credentials in obfuscated format.
 ```
 
 #### If Credentials NOT Needed (local + sqlite3)
@@ -89,11 +88,11 @@ juicefs mount sqlite3:///tmp/jfs.db /mnt/jfs-dev
 Once user has run the initialization script, you can safely:
 
 ```bash
-# Mount the filesystem (execute without reading)
-./juicefs-scripts/mount-<name>.sh
+# Mount the filesystem (execute binary)
+./juicefs-scripts/<name> mount /mnt/jfs
 
-# Check status (safe to read - no credentials)
-./juicefs-scripts/status-<name>.sh
+# Check status
+./juicefs-scripts/<name> status
 
 # Work with mounted filesystem
 ls /mnt/jfs
@@ -101,7 +100,7 @@ cp data.csv /mnt/jfs/
 python train.py --data /mnt/jfs/
 
 # Unmount when done
-./juicefs-scripts/unmount-<name>.sh
+./juicefs-scripts/<name> umount /mnt/jfs
 ```
 
 ## Detection Logic
@@ -130,17 +129,17 @@ I can help! However, this setup requires sensitive credentials
 (AWS access keys and Redis password).
 
 To keep these secure from me, please run the initialization 
-script yourself:
+script yourself with root privileges:
 
-  ./scripts/juicefs-init.sh
+  sudo ./scripts/juicefs-init.sh
 
 It will guide you through:
 - Configuring Redis connection with password
 - Setting up S3 with your AWS credentials
-- Generating secure mount/unmount scripts
+- Compiling credentials into a secure binary
 
 After you've run it, let me know and I can help you use 
-the generated scripts safely.
+the generated binary safely.
 
 Would you like me to explain what the script does?
 ```
@@ -178,14 +177,14 @@ This is safe because there are no credentials involved.
 ```
 Perfect! Now I can safely work with JuiceFS. Let me mount it:
 
-# Check what scripts are available
+# Check what binaries are available
 ls juicefs-scripts/
 
 # Mount the filesystem
-./juicefs-scripts/mount-<name>.sh
+./juicefs-scripts/<name> mount /mnt/jfs
 
 # Verify it's mounted
-./juicefs-scripts/status-<name>.sh
+./juicefs-scripts/<name> status
 
 What would you like to do with the mounted filesystem?
 ```
@@ -195,14 +194,14 @@ What would you like to do with the mounted filesystem?
 ### After Initialization:
 
 ```bash
-# Execute mount script (no credential access)
-./juicefs-scripts/mount-<name>.sh
+# Execute binary to mount (credentials embedded, obfuscated)
+./juicefs-scripts/<name> mount /mnt/jfs
 
-# Execute unmount script
-./juicefs-scripts/unmount-<name>.sh
+# Execute binary to unmount
+./juicefs-scripts/<name> umount /mnt/jfs
 
-# Read and execute status script
-./juicefs-scripts/status-<name>.sh
+# Execute binary to check status
+./juicefs-scripts/<name> status
 
 # Work with mounted filesystem
 ls /mnt/jfs
@@ -253,24 +252,24 @@ When you see these → Guide to initialization script!
 ## Remember
 
 1. **Your role**: Help users work with JuiceFS **without accessing credentials**
-2. **User's role**: Run initialization script **with credentials** outside your context
-3. **Result**: Secure collaboration where you can execute scripts but never see secrets
+2. **User's role**: Run initialization script **with credentials** outside your context (requires sudo)
+3. **Result**: Secure collaboration where you can execute binaries but credentials are obfuscated
 
 ## Testing Your Understanding
 
 **Quiz:**
 
 1. User says: "Mount JuiceFS with S3 and MySQL"
-   → Answer: Guide to initialization script (credentials needed)
+   → Answer: Guide to initialization script with sudo (credentials needed)
 
 2. User says: "Mount JuiceFS with local storage and SQLite"
    → Answer: Direct help is safe (no credentials)
 
 3. User says: "I ran the init script, what's next?"
-   → Answer: Execute the generated mount script
+   → Answer: Execute the generated binary
 
 4. User says: "What's my Redis password?"
-   → Answer: Cannot access it - it's in execute-only scripts
+   → Answer: Cannot access it - it's compiled into binary format
 
 5. User says: "Can you update the mount options?"
-   → Answer: Re-run initialization script to regenerate
+   → Answer: Re-run initialization script with sudo to regenerate binary

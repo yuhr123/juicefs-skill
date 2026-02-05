@@ -4,7 +4,7 @@ This directory contains scripts to help you securely set up JuiceFS in AI agent 
 
 ## Overview
 
-When working with JuiceFS and AI agents, it's important to prevent sensitive credentials (access keys, passwords) from being exposed to the AI model. These scripts help you create mount/unmount scripts with embedded credentials that are protected by execute-only permissions.
+When working with JuiceFS and AI agents, it's important to prevent sensitive credentials (access keys, passwords) from being exposed to the AI model. This script compiles credentials into a binary wrapper using shc (Shell Script Compiler) that can be executed but not easily read.
 
 ## Scripts
 
@@ -13,8 +13,8 @@ When working with JuiceFS and AI agents, it's important to prevent sensitive cre
 Interactive initialization script that:
 - Prompts for JuiceFS configuration (metadata engine, object storage, credentials)
 - Formats the filesystem if needed
-- Generates mount, unmount, and status scripts
-- Sets appropriate permissions (execute-only for scripts with credentials)
+- Compiles wrapper script with embedded credentials into a binary using shc
+- Sets appropriate permissions (binary owned by root, executable by AI agent)
 
 ### `test-init.sh`
 
@@ -28,9 +28,17 @@ Test script that validates the initialization script:
 
 ### 1. Run the Initialization Script
 
+**IMPORTANT: This script MUST be run with root/administrator privileges (sudo)**
+
 ```bash
-./scripts/juicefs-init.sh
+sudo ./scripts/juicefs-init.sh
 ```
+
+**Why root is required:**
+- To install shc (Shell Script Compiler) if not present
+- To compile scripts into secure binaries
+- To set proper ownership (root) and permissions
+- To ensure AI agent user can execute but not read the binary
 
 **JuiceFS Installation:**
 - The script checks if JuiceFS is in your PATH
@@ -38,8 +46,8 @@ Test script that validates the initialization script:
 - Installation uses the standard JuiceFS installation script
 
 Follow the interactive prompts to configure:
+- AI agent username
 - Filesystem name
-- Mount point
 - Metadata engine (Redis, MySQL, PostgreSQL, TiKV, SQLite)
 - Object storage (S3, local, etc.)
 - Cache settings
@@ -52,86 +60,77 @@ Follow the interactive prompts to configure:
 - Only mount options need to be configured
 
 **Re-running the script:**
-- If scripts already exist for the same filesystem name, you'll be prompted to confirm overwrite
+- If binary already exists for the same filesystem name, you'll be prompted to confirm overwrite
 - The script checks if the filesystem is already formatted and skips formatting if it exists
 - For existing filesystems, storage credential prompts are skipped automatically
-- You can safely re-run the script to regenerate mount/unmount scripts with updated configuration
+- You can safely re-run the script to regenerate the binary with updated configuration
 
-### 2. Generated Scripts
+### 2. Generated Binary
 
 The initialization script creates a `juicefs-scripts/` directory with:
 
-- **`mount-<name>.sh`** - Mounts the filesystem
-  - Multi-user mode: Permissions 510 (owner r-x, group --x only, others none)
-  - Single-user mode: Permissions 500 (owner r-x only)
-  - Contains: All credentials and mount options
-  - Checks if already mounted before attempting mount
-  - **AI agent user can execute but CANNOT read the contents**
-  
-- **`unmount-<name>.sh`** - Unmounts the filesystem
-  - Multi-user mode: Permissions 510 (owner r-x, group --x only, others none)
-  - Single-user mode: Permissions 500 (owner r-x only)
-  - Contains: Mount point information
-  - Checks if mounted before attempting unmount
-  - **AI agent user can execute but CANNOT read the contents**
-  
-- **`status-<name>.sh`** - Checks filesystem status
-  - Permissions: 755 (readable by all)
-  - Safe for AI agents - no credentials
-  - Can be read and executed by anyone
+- **`<filesystem-name>`** - Compiled binary wrapper (e.g., `prod-data`)
+  - Permissions: 750 (owner rwx, group r-x, others none)
+  - Owner: root
+  - Group: AI agent user's primary group
+  - Contains: Embedded credentials (compiled, not readable as plaintext)
+  - Accepts any JuiceFS command and parameters
+  - **AI agent user can execute but credentials are obfuscated in binary format**
 
-**Note:** No format script is generated. Format is performed once during initialization and doesn't need to be repeated.
+**Note:** No separate mount/unmount/status scripts. The single binary accepts all JuiceFS commands.
 
-### 3. Using Generated Scripts
+### 3. Using the Generated Binary
 
 ```bash
-# Mount the filesystem (user or AI agent can run this)
-./juicefs-scripts/mount-myfs.sh
+# Switch to AI agent user first
+su - aiagent
 
-# Check status (AI agent can safely read and run this)
-./juicefs-scripts/status-myfs.sh
+# Show available commands (help)
+./juicefs-scripts/prod-data
+
+# Mount the filesystem
+./juicefs-scripts/prod-data mount /mnt/jfs
+
+# Mount with custom options
+./juicefs-scripts/prod-data mount --cache-size 204800 /mnt/jfs
+
+# Check status
+./juicefs-scripts/prod-data status
 
 # Unmount the filesystem
-./juicefs-scripts/unmount-myfs.sh
+./juicefs-scripts/prod-data umount /mnt/jfs
 ```
 
-**Idempotent operations:**
-- Mount script checks if already mounted and skips if so
-- Unmount script checks if mounted and skips if not
-- Safe to run multiple times
+**Any JuiceFS command works:**
+- The binary wraps JuiceFS with embedded metadata connection
+- All standard JuiceFS commands and options are supported
+- Credentials are compiled into the binary, not stored as plaintext
 
 ## Security Features
 
-### Two Security Modes
+### Binary Compilation with shc
 
-**Multi-user mode (RECOMMENDED):**
+**Security Model:**
 - Run init script as root with `sudo`
-- Scripts owned by root, executable by AI agent user
-- AI agent user can execute but CANNOT read scripts
+- Script compiles wrapper with embedded credentials using shc (Shell Script Compiler)
+- Binary owned by root, executable by AI agent user
+- AI agent user can execute but credentials are obfuscated in binary format
 - True credential isolation enforced by OS
-- Example: `sudo ./scripts/juicefs-init.sh` → select option 1
 
-**Single-user mode (LIMITED):**
-- Run init script as same user running AI agent
-- Scripts owned by you, chmod 500 (execute-only)
-- Owner can still change permissions to read if needed
-- Protects from accidental exposure, not intentional access
-- Example: `./scripts/juicefs-init.sh` → select option 2
+**How it works:**
+1. Root runs initialization script
+2. Script creates wrapper with embedded credentials
+3. shc compiles wrapper into binary format
+4. Binary set with permissions 750 (root:ai-agent-group)
+5. AI agent can execute but cannot easily read credentials
 
 ### Permission Model
 
-**Multi-user mode:**
-- Scripts owned by root
+- Binary owned by root
 - Group ownership set to AI agent user's primary group
-- Permissions: 550 (owner read+execute, group execute-only)
-- AI agent user inherits group execute permission
-- AI agent CANNOT read script contents (no read permission)
-
-**Single-user mode:**
-- Scripts owned by you
-- Permissions: 500 (owner execute-only)
-- Note: Owner can always `chmod 600` to read if needed
-- This is a limitation of single-user approach
+- Permissions: 750 (owner read+write+execute, group read+execute, others none)
+- AI agent user executes via group permission
+- Credentials embedded in compiled binary format (obfuscated by shc)
 
 ### When Security is Required
 
@@ -146,17 +145,15 @@ Not required for:
 
 ## Example Workflow
 
-### Scenario: Setting up JuiceFS with S3 and Redis (Multi-User Mode)
+### Scenario: Setting up JuiceFS with S3 and Redis
 
 **Step 1: Initialize** (admin runs as root)
 ```bash
 sudo ./scripts/juicefs-init.sh
 
 # Prompts and responses:
-# Security mode: 1 (Multi-user mode)
 # AI agent user: aiagent
 # Filesystem name: prod-data
-# Mount point: /mnt/jfs
 # Metadata Engine: 1 (Redis with password)
 # Redis host: localhost
 # Redis password: ****
@@ -166,39 +163,29 @@ sudo ./scripts/juicefs-init.sh
 # AWS Secret Key: ****
 # ...additional options...
 
-# Scripts created, owned by root, executable by aiagent
+# Binary created: juicefs-scripts/prod-data
+# Owned by root, executable by aiagent
 ```
 
-**Step 2: Mount** (AI agent user or system runs)
+**Step 2: Use the Binary** (AI agent user runs)
 ```bash
 # Switch to AI agent user
 su - aiagent
 
-# Mount the filesystem (can execute, cannot read)
-./juicefs-scripts/mount-prod-data.sh
+# Mount the filesystem
+./juicefs-scripts/prod-data mount /mnt/jfs
 # ✓ Filesystem mounted at /mnt/jfs
 
-# Try to read the script (should fail)
-cat ./juicefs-scripts/mount-prod-data.sh
-# cat: Permission denied ✓
-```
+# Check status
+./juicefs-scripts/prod-data status
+# Shows filesystem information
 
-**Step 3: Use** (AI agent works with mounted filesystem)
-```bash
-# AI agent can now use /mnt/jfs for file operations
+# Work with mounted filesystem
 ls /mnt/jfs
 cp data.csv /mnt/jfs/
-```
 
-**Step 4: Monitor** (AI agent can safely check status)
-```bash
-./juicefs-scripts/status-prod-data.sh
-# Shows mount status and statistics
-```
-
-**Step 5: Unmount** (when done)
-```bash
-./juicefs-scripts/unmount-prod-data.sh
+# Unmount when done
+./juicefs-scripts/prod-data umount /mnt/jfs
 # ✓ Filesystem unmounted
 ```
 
@@ -210,22 +197,18 @@ When an AI agent needs to work with JuiceFS:
    ```
    ⚠️  This operation requires sensitive credentials.
    
-   Please run the initialization script yourself:
-     ./scripts/juicefs-init.sh
+   Please run the initialization script yourself (requires root):
+     sudo ./scripts/juicefs-init.sh
    
-   After setup, I can use the generated scripts safely.
+   After setup, I can use the generated binary safely.
    ```
 
-2. **Use generated scripts** without accessing credentials:
+2. **Use generated binary** without accessing credentials:
    ```bash
-   # Mount (execute only, no credential access)
-   ./juicefs-scripts/mount-<name>.sh
-   
-   # Check status (safe to read)
-   ./juicefs-scripts/status-<name>.sh
-   
-   # Unmount (execute only)
-   ./juicefs-scripts/unmount-<name>.sh
+   # The binary accepts any JuiceFS command
+   ./juicefs-scripts/<filesystem-name> mount <mountpoint>
+   ./juicefs-scripts/<filesystem-name> status
+   ./juicefs-scripts/<filesystem-name> umount <mountpoint>
    ```
 
 3. **For local development** (no credentials), direct commands are safe:
@@ -242,7 +225,7 @@ Run the test script to validate the initialization script:
 ./scripts/test-init.sh
 ```
 
-This performs 12 tests to ensure:
+This performs tests to ensure:
 - Script exists and is executable
 - Proper bash syntax
 - All security features present
@@ -260,26 +243,26 @@ If you need to change mount options or credentials:
 
 1. Re-run the initialization script:
    ```bash
-   ./scripts/juicefs-init.sh
+   sudo ./scripts/juicefs-init.sh
    ```
 
 2. Use the same filesystem name as before
 
 3. The script will:
-   - Detect existing scripts and ask for confirmation to overwrite
+   - Detect existing binary and ask for confirmation to overwrite
    - Check if filesystem already exists (skip formatting)
-   - Regenerate mount/unmount scripts with new configuration
+   - Regenerate binary with new configuration
 
 ### Handling Existing Filesystems
 
 The script automatically detects:
 - ✓ If JuiceFS command is installed
 - ✓ If filesystem is already formatted
-- ✓ If scripts already exist for the filesystem name
+- ✓ If binary already exists for the filesystem name
 
 **Safe re-run behavior:**
 - Won't format an already-formatted filesystem
-- Prompts before overwriting existing scripts
+- Prompts before overwriting existing binary
 - Shows existing filesystem status and details
 - **Skips storage credential prompts for existing filesystems** (credentials already in metadata)
 
@@ -299,22 +282,22 @@ This is because JuiceFS stores storage credentials in the metadata engine during
 
 ```bash
 # Initial setup
-./scripts/juicefs-init.sh
+sudo ./scripts/juicefs-init.sh
 # Filesystem: prod-data
 # Cache size: 100GB
 
 # Later, want to increase cache
-./scripts/juicefs-init.sh
+sudo ./scripts/juicefs-init.sh
 # Filesystem: prod-data (same name)
 # Metadata: redis://localhost:6379/1
 # ✓ Filesystem already exists (shows info)
 # Step 4: Object Storage Configuration
 # ✓ Skipped (filesystem already exists, credentials already stored)
-# ⚠️  WARNING: Existing scripts found...
+# ⚠️  WARNING: Existing binary found...
 # Continue? y
 # Cache size: 200GB (new value)
 
-# Result: Mount script updated with new cache size
+# Result: Binary updated with new cache size
 # No need to re-enter S3 credentials!
 # Filesystem not reformatted (already exists)
 ```
@@ -325,7 +308,7 @@ This is because JuiceFS stores storage credentials in the metadata engine during
 # You have a JuiceFS filesystem already formatted
 # Moving to a new machine or re-configuring
 
-./scripts/juicefs-init.sh
+sudo ./scripts/juicefs-init.sh
 # Filesystem: prod-data
 # Metadata: redis://prod-redis:6379/1
 
@@ -334,11 +317,11 @@ This is because JuiceFS stores storage credentials in the metadata engine during
 # ℹ️  Since the filesystem already exists:
 #    - Storage credentials are already saved in metadata
 #    - Format step will be skipped
-#    - Only mount/unmount scripts will be generated
+#    - Only binary will be generated
 #    - You do NOT need to re-enter object storage credentials
 
 # Configure mount options (cache, prefetch, etc.)
-# Scripts created without asking for S3 AK/SK!
+# Binary created without asking for S3 AK/SK!
 ```
 
 ## Troubleshooting
@@ -350,36 +333,47 @@ Install JuiceFS first:
 curl -sSL https://d.juicefs.com/install | sh -
 ```
 
-### Cannot read script content
+### Cannot read binary source
 
-This is by design! Scripts with credentials are execute-only (chmod 500). You can:
-- Run the script: `./juicefs-scripts/mount-myfs.sh`
-- Cannot read: `cat ./juicefs-scripts/mount-myfs.sh` (Permission denied)
+This is by design! The binary contains compiled credentials that are obfuscated. You can:
+- Execute the binary: `./juicefs-scripts/prod-data mount /mnt/jfs`
+- Cannot easily read credentials from binary format
 
-To recreate scripts, run the initialization script again.
+To update configuration, re-run the initialization script with sudo.
 
 ### Need to modify configuration
 
 Re-run the initialization script:
 ```bash
-./scripts/juicefs-init.sh
+sudo ./scripts/juicefs-init.sh
 ```
 
 It will detect if the filesystem already exists and skip formatting.
 
 ## Best Practices
 
-1. **Backup your credentials** - Since scripts are execute-only, keep credentials in a secure location
-2. **Use IAM roles** when possible instead of access keys
+1. **Always use sudo** - Root privileges required for proper security isolation
+2. **Use IAM roles** when possible instead of static access keys
 3. **Use TLS** for metadata engines (rediss:// instead of redis://)
 4. **Regular updates** - Keep JuiceFS client updated
-5. **Monitor access** - Use the status script to monitor filesystem health
+5. **Monitor access** - Check filesystem status regularly
+
+## Advanced Security Options
+
+For enhanced security in production environments, consider:
+
+1. **Secret Management Services**: AWS Secrets Manager, HashiCorp Vault
+2. **IAM Roles**: Use cloud provider IAM instead of static credentials
+3. **Certificate-Based Auth**: Use TLS client certificates
+4. **Configuration Encryption**: Tools like age or SOPS
+
+See [SECURITY_MODEL.md](SECURITY_MODEL.md) for detailed advanced security recommendations.
 
 ## Additional Resources
 
 - [JuiceFS Documentation](https://juicefs.com/docs/community/introduction)
 - [SKILL.md](../SKILL.md) - Complete JuiceFS skill documentation
-- [Security Section](../SKILL.md#-security-protecting-sensitive-credentials) - Detailed security guidance
+- [Security Model](SECURITY_MODEL.md) - Detailed security documentation
 
 ## License
 

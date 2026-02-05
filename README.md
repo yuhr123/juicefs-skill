@@ -151,7 +151,21 @@ For comprehensive details, see the [references directory](references/).
 
 ## 🔒 Security: Protecting Credentials
 
-When using JuiceFS with AI agents, sensitive credentials (AK/SK, passwords) should NOT be exposed to the AI model. This skill includes a secure initialization script that compiles credentials into binaries using shc (Shell Script Compiler):
+When using JuiceFS with AI agents, sensitive credentials (AK/SK, passwords) should NOT be exposed to the AI model. This skill provides a secure initialization script that compiles credentials into binaries using shc (Shell Script Compiler).
+
+### SKILL Positioning
+
+**What This SKILL Provides:**
+- Security guidance for AI agents working with JuiceFS
+- Method to maximize isolation between AI agents and sensitive credentials
+- Secure initialization process assuming **AI agent runs as non-root user**
+
+**What This SKILL Does NOT Handle:**
+- How AI agents are deployed or managed
+- Host system configuration
+- Network security setup
+
+The security model assumes the AI agent runs as a **non-root user**, and provides maximum credential isolation in that context. Security recommendations under root/admin mode are ineffective.
 
 ### Using the Initialization Script
 
@@ -167,7 +181,7 @@ sudo ./scripts/juicefs-init.sh
 - To install shc (Shell Script Compiler) if not present
 - To compile scripts into secure binaries
 - To set proper ownership (root) and permissions
-- To ensure AI agent user can execute but not read the binary
+- To ensure AI agent user can execute but credentials are obfuscated in binary format
 
 ### Security Model
 
@@ -196,7 +210,7 @@ After initialization, you'll have:
 
 The binary:
 - Is named after your filesystem for easy identification
-- Contains embedded credentials (compiled, not readable)
+- Contains embedded credentials (compiled into binary format, obfuscated)
 - Accepts any JuiceFS command and parameters
 - Can be used by AI agents safely
 
@@ -215,7 +229,15 @@ The binary:
 ./juicefs-scripts/prod-data umount /mnt/jfs
 ```
 
-See [SKILL.md](SKILL.md) for detailed security documentation.
+### Advanced Security Options
+
+For maximum security in production environments:
+- **Secret Management**: AWS Secrets Manager, HashiCorp Vault
+- **IAM-Based Auth**: Cloud provider IAM roles (no static credentials)
+- **Certificate-Based Auth**: TLS client certificates
+- **Config Encryption**: age, SOPS
+
+See [scripts/SECURITY_MODEL.md](scripts/SECURITY_MODEL.md) for detailed guidance and [SKILL.md](SKILL.md) for complete security documentation.
 
 ## Skill Coverage
 
