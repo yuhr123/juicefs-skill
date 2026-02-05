@@ -14,7 +14,7 @@ The security model is based on a clear separation of responsibilities:
 
 This enforces true OS-level isolation where the AI agent can execute operations but cannot read sensitive information.
 
-## Security Model: Multi-User Mode
+## Security Model
 
 **Setup Process:**
 1. Run initialization script as `root` (using `sudo`)
