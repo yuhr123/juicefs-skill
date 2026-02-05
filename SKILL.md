@@ -100,7 +100,7 @@ Use this skill when:
 
 **What This SKILL Does NOT Handle:**
 - How AI agents are deployed or run
-- Host system security configuration  
+- Host system security configuration
 - Network security setup
 - General system administration
 
