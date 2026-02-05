@@ -90,6 +90,23 @@ Use this skill when:
 
 **IMPORTANT FOR AI AGENTS**: When working with JuiceFS in AI agent environments, credentials (AK/SK, passwords) should NOT be exposed to the AI model to prevent data leakage.
 
+### SKILL Responsibility Boundary
+
+**What This SKILL Provides:**
+- Security guidance for AI agents working with JuiceFS
+- Method to prevent AI agents from accessing sensitive credentials
+- Secure initialization process with binary compilation
+- Clear separation between admin setup (root) and agent usage (non-root)
+
+**What This SKILL Does NOT Handle:**
+- How AI agents are deployed or run
+- Host system security configuration  
+- Network security setup
+- General system administration
+
+**Design Philosophy:**
+This SKILL assumes the AI agent runs as a **non-root user** and provides maximum isolation between the agent and sensitive information. Security recommendations under root/admin mode are ineffective as root has unrestricted access.
+
 ### When Credential Protection is Required
 
 Use the secure initialization approach when using:
@@ -111,7 +128,7 @@ Instead of directly running `juicefs format` and `juicefs mount` commands that e
 - To install shc (Shell Script Compiler) if not present
 - To compile scripts into secure binaries
 - To set proper ownership and permissions
-- To ensure AI agent cannot access credentials
+- To ensure AI agent user cannot access credentials
 
 **Run the initialization script:**
 
@@ -128,7 +145,7 @@ The script is designed to be re-runnable and will:
 - Allow you to update configuration without reformatting
 
 This interactive script will:
-- Prompt for security mode selection
+- Prompt for AI agent username
 - Prompt for all sensitive configuration (AK/SK, passwords, URLs)
 - Install shc (Shell Script Compiler) if not present
 - Format the filesystem if needed
@@ -143,7 +160,7 @@ This interactive script will:
 - `<filesystem-name>` - Compiled binary wrapper (e.g., `prod-data`)
 
 The binary:
-- Contains embedded credentials (compiled, not readable as text)
+- Contains embedded credentials (compiled into binary format, obfuscated)
 - Accepts any JuiceFS command and parameters
 - Named after filesystem for easy identification and management
 - One filesystem = one binary program
@@ -587,7 +604,8 @@ juicefs sync jfs://redis://source:6379/1/ jfs://redis://dest:6379/1/
    - Use `./scripts/juicefs-init.sh` to create compiled binary with embedded credentials
    - The script uses shc (Shell Script Compiler) to protect sensitive information
    - Binary is named after filesystem for easy management
-   - This prevents AI models from accessing AK/SK, passwords, and sensitive URLs
+   - Credentials are compiled into binary format (obfuscated by shc)
+   - This prevents AI models from easily accessing AK/SK, passwords, and sensitive URLs
    - See the "Security: Protecting Sensitive Credentials" section above for details
 
 2. **Enable encryption**:
@@ -599,30 +617,59 @@ juicefs sync jfs://redis://source:6379/1/ jfs://redis://dest:6379/1/
 
 4. **Use HTTPS for object storage**: Always use HTTPS endpoints
 
-5. **IAM roles**: Use IAM roles instead of access keys when possible
+5. **IAM roles**: Use IAM roles instead of static access keys when possible
 
 6. **Network isolation**: Use VPC/private networks for production
 
+### Advanced Security Recommendations
+
+For production environments requiring maximum security:
+
+**1. Secret Management Services:**
+- AWS Secrets Manager / Parameter Store
+- HashiCorp Vault
+- Azure Key Vault
+- Benefits: Centralized rotation, auditing, time-limited access
+
+**2. IAM-Based Authentication:**
+- AWS: Use IAM roles with EC2 instance profiles
+- Azure: Use Managed Identity
+- GCP: Use Workload Identity
+- Benefits: No static credentials, automatic rotation
+
+**3. Certificate-Based Authentication:**
+- Use TLS client certificates for Redis/databases
+- Benefits: No passwords to protect, automatic validation
+
+**4. Configuration File Encryption:**
+- age (modern encryption tool)
+- SOPS (Secrets OPerationS)
+- Benefits: Version-controllable configs, separate key management
+
+See [scripts/SECURITY_MODEL.md](scripts/SECURITY_MODEL.md) for detailed implementation guidance.
+
 ## Environment Variables
 
-⚠️  **WARNING for AI Agents**: Setting these environment variables exposes credentials to the AI model. Use the secure initialization script instead (see Security section above).
+The initialization script does NOT export sensitive environment variables. Instead, credentials are compiled into secure binaries. 
+
+For reference, JuiceFS supports these environment variables:
 
 ```bash
-# AWS credentials (⚠️  Contains sensitive data)
-export AWS_ACCESS_KEY_ID=your-key
-export AWS_SECRET_ACCESS_KEY=your-secret
-
-# Redis password (⚠️  Contains sensitive data)
-export REDIS_PASSWORD=your-password
-
-# Custom cache (✓ Safe)
+# Custom cache (✓ Safe - no credentials)
 export JUICEFS_CACHE_DIR=/ssd/cache
 
-# Debug logging (✓ Safe)
+# Debug logging (✓ Safe - no credentials)
 export JUICEFS_LOGLEVEL=debug
+
+# AWS credentials (⚠️ NOT RECOMMENDED - exposes to AI agent)
+# export AWS_ACCESS_KEY_ID=your-key
+# export AWS_SECRET_ACCESS_KEY=your-secret
+
+# Redis password (⚠️ NOT RECOMMENDED - exposes to AI agent)
+# export REDIS_PASSWORD=your-password
 ```
 
-**Recommended approach**: Use the initialization script which embeds these in execute-only scripts.
+**Recommended approach**: Use the initialization script which compiles credentials into binaries rather than using environment variables.
 
 ## Quick Decision Trees
 
