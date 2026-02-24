@@ -1,0 +1,1 @@
+# File content for script2.sh
