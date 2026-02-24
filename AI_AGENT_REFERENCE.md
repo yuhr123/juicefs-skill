@@ -19,7 +19,7 @@ command -v juicefs
 
 ```
 The initialization script can install JuiceFS for you if needed.
-Just run: ./scripts/juicefs-init.sh
+Just run: ./juicefs-init.sh
 
 If you prefer to install manually:
   curl -sSL https://d.juicefs.com/install | sh -
@@ -50,7 +50,7 @@ To prevent credential exposure to me (the AI agent), please:
 
 1. Run the initialization script with root privileges:
    
-   sudo ./scripts/juicefs-init.sh
+   sudo ./juicefs-init.sh
    
    (Root is required to install shc, compile binaries, and set proper permissions)
 
@@ -131,7 +131,7 @@ I can help! However, this setup requires sensitive credentials
 To keep these secure from me, please run the initialization 
 script yourself with root privileges:
 
-  sudo ./scripts/juicefs-init.sh
+  sudo ./juicefs-init.sh
 
 It will guide you through:
 - Configuring Redis connection with password

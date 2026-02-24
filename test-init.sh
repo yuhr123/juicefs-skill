@@ -6,8 +6,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(dirname "$SCRIPT_DIR")"
-INIT_SCRIPT="$REPO_DIR/scripts/juicefs-init.sh"
+INIT_SCRIPT="$SCRIPT_DIR/juicefs-init.sh"
 
 echo "=========================================="
 echo "  Testing juicefs-init.sh"

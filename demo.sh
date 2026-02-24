@@ -28,7 +28,7 @@ Agent: "This requires sensitive credentials (AK/SK, Redis password)."
 
 IMPORTANT: Must run with sudo (root privileges required)
 
-$ sudo ./scripts/juicefs-init.sh
+$ sudo ./juicefs-init.sh
 
 Prompts for:
   ✓ AI agent username: aiagent
@@ -135,8 +135,8 @@ echo "  Try it yourself!"
 echo "=========================================="
 echo ""
 echo "Run the initialization script:"
-echo "  ./scripts/juicefs-init.sh"
+echo "  ./juicefs-init.sh"
 echo ""
 echo "Or view the script to understand the implementation:"
-echo "  cat ./scripts/juicefs-init.sh"
+echo "  cat ./juicefs-init.sh"
 echo ""

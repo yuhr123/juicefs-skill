@@ -12,7 +12,7 @@ cat << 'EOF'
 
 ## Security Model Overview
 
-This SKILL provides secure access guidance for AI Agents working with JuiceFS.
+This tool provides secure access guidance for working with JuiceFS.
 The security model ensures maximum isolation between AI agents and sensitive credentials.
 
 ┌─────────────────────────────────────────────────────────────┐
@@ -20,7 +20,7 @@ The security model ensures maximum isolation between AI agents and sensitive cre
 └─────────────────────────────────────────────────────────────┘
 
 Setup Process:
-  $ sudo ./scripts/juicefs-init.sh
+  $ sudo ./juicefs-init.sh
   # AI agent user: aiagent
   # Follow prompts to configure filesystem
 
@@ -73,7 +73,7 @@ Admin Setup:
   $ sudo useradd -m aiagent
   
   # Initialize filesystem
-  $ sudo ./scripts/juicefs-init.sh
+  $ sudo ./juicefs-init.sh
   AI agent user: aiagent
   Filesystem: prod-data
   # ...configure credentials...
@@ -133,13 +133,13 @@ Mitigation:
 
 ## Responsibility Boundary
 
-SKILL Provides:
+Tool Provides:
   ✓ Security guidance for AI agent environments
   ✓ Secure initialization process
   ✓ Binary compilation with shc
   ✓ Best practices for credential isolation
 
-SKILL Does NOT Handle:
+Tool Does NOT Handle:
   ✗ How AI agents are deployed
   ✗ How AI agents are run/managed
   ✗ Host system security configuration
@@ -148,7 +148,7 @@ SKILL Does NOT Handle:
 Collaboration Model:
   - Admin: Runs initialization with sudo
   - AI Agent: Executes binaries, works with filesystems
-  - SKILL: Provides guidance and tools
+  - Tool: Provides guidance and tools
 
 EOF
 
@@ -158,7 +158,7 @@ echo "  Try It Yourself"
 echo "=========================================="
 echo ""
 echo "Run the initialization script:"
-echo "  sudo ./scripts/juicefs-init.sh"
+echo "  sudo ./juicefs-init.sh"
 echo ""
 echo "See SECURITY_MODEL.md for detailed documentation"
 echo ""

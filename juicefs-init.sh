@@ -37,7 +37,7 @@ if [[ $EUID -ne 0 ]]; then
     echo ""
     echo "   Please run this script with sudo:"
     echo ""
-    echo "   sudo ./scripts/juicefs-init.sh"
+    echo "   sudo ./juicefs-init.sh"
     echo ""
     exit 1
 fi

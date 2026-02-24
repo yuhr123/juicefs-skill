@@ -2,7 +2,7 @@
 
 ## Security Model Overview
 
-This SKILL provides secure access guidance for AI Agents working with JuiceFS. The security model is designed to maximize isolation between AI agents and sensitive credentials.
+This tool provides secure access guidance for working with JuiceFS. The security model is designed to maximize isolation between AI agents and sensitive credentials.
 
 ## Core Design Principle
 
@@ -36,7 +36,7 @@ This enforces true OS-level isolation where the AI agent can execute operations 
 **Example:**
 ```bash
 # Admin runs:
-sudo ./scripts/juicefs-init.sh
+sudo ./juicefs-init.sh
 # AI agent user: aiagent
 # Filesystem name: prod-data
 
@@ -98,7 +98,7 @@ chown root:<ai-agent-group> juicefs-scripts/<filesystem-name>
 sudo useradd -m -s /bin/bash aiagent
 
 # 2. Initialize as root
-sudo ./scripts/juicefs-init.sh
+sudo ./juicefs-init.sh
 # AI agent user: aiagent
 # Follow prompts to configure filesystem
 
@@ -283,9 +283,9 @@ juicefs mount \
    - Implement IAM-based authentication
    - Use certificate-based authentication where possible
 
-## SKILL Responsibility Boundary
+## Tool Responsibility Boundary
 
-### What This SKILL Provides
+### What This Tool Provides
 
 **Security Guidance for AI Agent Environments:**
 - Method to prevent AI agents from accessing sensitive credentials
@@ -293,7 +293,7 @@ juicefs mount \
 - Clear separation between admin setup and agent usage
 - Best practices for credential isolation
 
-### What This SKILL Does NOT Handle
+### What This Tool Does NOT Handle
 
 **Out of Scope:**
 - How AI agents are deployed
@@ -317,7 +317,7 @@ juicefs mount \
 - Report status and issues
 - Never attempt to access credentials
 
-**SKILL's Role:**
+**Tool Role:**
 - Provide guidance on secure setup
 - Ensure maximum isolation between agent and credentials
 - Document security model and best practices
