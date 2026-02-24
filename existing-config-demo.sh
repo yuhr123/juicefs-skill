@@ -19,7 +19,7 @@ When re-running the initialization script:
 ❌ No clear feedback about what's being updated
 
 User experience:
-  $ ./scripts/juicefs-init.sh
+  $ ./juicefs-init.sh
   # ... goes through all prompts again
   # Silently overwrites existing scripts
   # May fail trying to format existing filesystem
@@ -32,7 +32,7 @@ User experience:
 Before creating scripts, check if they already exist:
 
 ┌─────────────────────────────────────────────────────────────┐
-│ $ ./scripts/juicefs-init.sh                                 │
+│ $ ./juicefs-init.sh                                 │
 │ # After providing filesystem name: "prod-data"              │
 │                                                             │
 │ ⚠️  WARNING: Existing scripts found for filesystem 'prod-data': │
@@ -113,13 +113,13 @@ Scenario: Change cache size from 100GB to 200GB
 
 ```bash
 # Initial setup (cache: 100GB)
-$ ./scripts/juicefs-init.sh
+$ ./juicefs-init.sh
 Filesystem: prod-data
 Cache size: 100GB
 # Scripts created
 
 # Later, want to increase cache
-$ ./scripts/juicefs-init.sh
+$ ./juicefs-init.sh
 Filesystem: prod-data
 
 ⚠️  WARNING: Existing scripts found...
@@ -148,12 +148,12 @@ Scenario: Typo in mount point path, need to fix
 
 ```bash
 # Initial setup (typo: /mtn/jfs instead of /mnt/jfs)
-$ ./scripts/juicefs-init.sh
+$ ./juicefs-init.sh
 Mount point: /mtn/jfs  # Typo!
 # Scripts created with wrong path
 
 # Realize mistake, re-run
-$ ./scripts/juicefs-init.sh
+$ ./juicefs-init.sh
 
 ⚠️  WARNING: Existing scripts found...
 Continue? y
@@ -172,7 +172,7 @@ Scripts regenerated with correct mount point
 Scenario: Accidentally run script again
 
 ```bash
-$ ./scripts/juicefs-init.sh
+$ ./juicefs-init.sh
 
 ⚠️  WARNING: Existing scripts found for filesystem 'prod-data':
    - ./juicefs-scripts/mount-prod-data.sh
